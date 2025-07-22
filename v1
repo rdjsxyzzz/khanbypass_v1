@@ -1,3 +1,12 @@
+// ==UserScript==
+// @name         Khan Modded
+// @version      1.0.0
+// @description  Automatiza y modifica interacciones en Khan Academy
+// @author       rxdrzx_
+// @match        *://*.khanacademy.org/*
+// @grant        none
+// ==/UserScript==
+
 let loadedPlugins = [];
 
 console.clear();
@@ -111,7 +120,7 @@ function setupMain() {
             init.body = body;
           }
           
-          sendToast("✅｜Bypass injected¡", 1000);
+          sendToast("✅｜Bypass injected¡", 1500);
         }
       } catch (e) {}
     }
@@ -137,9 +146,9 @@ function setupMain() {
             zTable: false
           };
           
-          itemData.question.content = "modified by: rxdrzx_ @tk @ig " + `[[☃ radio 900]]`;
+          itemData.question.content = "modified by: rxdrzx_ @tk @ig " + `[[☃ radio 1]]`;
           itemData.question.widgets = {
-            "radio 900": {
+            "radio 1": {
               type: "radio",
               options: {
                 choices: [{ content: "correct ✅", correct: true }]
@@ -182,7 +191,7 @@ function setupMain() {
           sendToast("🎉｜Exercício concluído!", 3000);
         }
       }
-      await delay(1500); 
+      await delay(45000); 
     }
   })();
 }
