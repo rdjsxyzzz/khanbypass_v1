@@ -137,9 +137,9 @@ function setupMain() {
             zTable: false
           };
           
-          itemData.question.content = "modified by: rxdrzx_ @tk @ig " + `[[☃ radio 20]]`;
+          itemData.question.content = "modified by: rxdrzx_ @tk @ig " + `[[☃ radio 900]]`;
           itemData.question.widgets = {
-            "radio 20": {
+            "radio 900": {
               type: "radio",
               options: {
                 choices: [{ content: "correct ✅", correct: true }]
