@@ -152,6 +152,7 @@ function setupMain() {
               type: "radio",
               options: {
                choices: [{ content: "correct ✅", correct: true }]
+
                choices: [{ content: "correct ✅", correct: false }]
               }
             }
