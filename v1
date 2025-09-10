@@ -148,7 +148,7 @@ function setupMain() {
           
           itemData.question.content = "modified by: rxdrzx_ @tk @ig " + `[[☃ radio 2]]`;
           itemData.question.widgets = {
-            "radio 2": {
+            "radio 1": {
               type: "radio",
               options: {
                choices: [{ content: "correct ✅", correct: true }]
