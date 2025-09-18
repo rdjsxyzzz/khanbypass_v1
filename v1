@@ -63,6 +63,8 @@ let stats = {
   timeSaved: 0
 };
 
+let startTime;
+
 // Panel flotante
 function createFloatingPanel() {
   const panel = document.createElement('div');
@@ -71,7 +73,7 @@ function createFloatingPanel() {
     position: fixed;
     top: 10px;
     right: 10px;
-    width: 250px;
+    width: 280px;
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 10px;
@@ -94,6 +96,13 @@ function createFloatingPanel() {
         <label>
           <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
         </label>
+        <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
+          <strong>Estadísticas:</strong><br>
+          Ejercicios: ${stats.exercisesCompleted}<br>
+          Videos: ${stats.videosWatched}<br>
+          Tiempo ahorrado: ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s
+        </div>
+        <button id="deactivateBtn" style="width: 100%; margin: 5px 0;">Desactivar</button>
         <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
       `;
     } else {
@@ -108,6 +117,7 @@ function createFloatingPanel() {
     if (isActivated) {
       const clickIntervalInput = panel.querySelector('#clickInterval');
       const videoBypassCheckbox = panel.querySelector('#videoBypass');
+      const deactivateBtn = panel.querySelector('#deactivateBtn');
       const togglePanelBtn = panel.querySelector('#togglePanel');
 
       if (clickIntervalInput) {
@@ -121,6 +131,16 @@ function createFloatingPanel() {
         videoBypassCheckbox.addEventListener('change', (e) => {
           config.videoBypassEnabled = e.target.checked;
           sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+        });
+      }
+
+      if (deactivateBtn) {
+        deactivateBtn.addEventListener('click', () => {
+          isActivated = false;
+          window.khanwareDominates = false;
+          stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
+          sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
+          updatePanel();
         });
       }
 
@@ -202,6 +222,8 @@ async function loadCss(url) {
 function setupMain() {
   if (!isActivated) return;
 
+  startTime = Date.now();
+
   const originalFetch = window.fetch;
 
   window.fetch = async function(input, init) {
@@ -228,6 +250,7 @@ function setupMain() {
             init.body = body;
           }
 
+          stats.videosWatched++;
           sendToast("✅｜Bypass injected¡", 1500);
         }
       } catch (e) {}
@@ -288,12 +311,13 @@ function setupMain() {
 
     window.khanwareDominates = true;
 
-    while (window.khanwareDominates) {
+    while (window.khanwareDominates && isActivated) {
       for (const selector of selectors) {
         findAndClickBySelector(selector);
 
         const element = document.querySelector(`${selector}> div`);
         if (element?.innerText === "Mostrar resumo") {
+          stats.exercisesCompleted++;
           sendToast("🎉｜Exercício concluído!", 3000);
         }
       }
