@@ -56,13 +56,6 @@ let config = {
   videoBypassEnabled: true
 };
 
-// Estadísticas
-let stats = {
-  exercises: 0,
-  videos: 0,
-  timeSaved: 0
-};
-
 // Panel flotante
 function createFloatingPanel() {
   const panel = document.createElement('div');
@@ -87,6 +80,9 @@ function createFloatingPanel() {
       panel.innerHTML = `
         <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
         <p style="margin: 0 0 10px 0;">Estado: Activado</p>
+        <p style="margin: 0 0 5px 0;">Ejercicios completados: 0</p>
+        <p style="margin: 0 0 5px 0;">Videos vistos: 0</p>
+        <p style="margin: 0 0 10px 0;">Tiempo ahorrado: 0m 0s</p>
         <label>
           Intervalo de clics (ms):
           <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
