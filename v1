@@ -58,7 +58,9 @@ let config = {
 
 // Función de activación
 function activateScript() {
+  console.log("Solicitando clave de activación...");
   const key = window.prompt("Ingresa la clave de activación para Khan Modded:");
+  console.log("Clave ingresada:", key);
   if (key === atob(ENCODED_KEY)) {
     isActivated = true;
     sendToast("✅ Clave correcta. Script activado.", 3000);
