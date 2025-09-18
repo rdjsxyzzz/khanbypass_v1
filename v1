@@ -56,6 +56,13 @@ let config = {
   videoBypassEnabled: true
 };
 
+// Estadísticas
+let stats = JSON.parse(localStorage.getItem('khanStats')) || {
+  exercises: 0,
+  videos: 0,
+  timeSaved: 0
+};
+
 // Panel flotante
 function createFloatingPanel() {
   const panel = document.createElement('div');
