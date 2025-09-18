@@ -1,17 +1,15 @@
 // ==UserScript==
-// @name         Khan Modded with Auto Resolve Checkbox
-// @version      1.7.0
-// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver activable
+// @name         Khan Modded Improved
+// @version      1.2.0
+// @description  Automatiza y modifica interacciones en Khan Academy con panel de control flotante y sistema de activación
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
 // ==/UserScript==
 
-// Clave de activación encriptada (base64 de "RSkhanmod")
-const ENCODED_KEY = "UlNraGFubW9k";
-
 let loadedPlugins = [];
 let isActivated = false;
+const activationKey = "KHANMOD2023"; // Clave de activación hardcoded (cambiar en producción)
 
 console.clear();
 const noop = () => {};
@@ -53,8 +51,14 @@ new MutationObserver(mutationsList =>
 // Configuración global
 let config = {
   clickInterval: 25000, // ms
-  videoBypassEnabled: true,
-  autoResolveEnabled: false
+  videoBypassEnabled: true
+};
+
+// Contadores
+let stats = {
+  exercisesCompleted: 0,
+  videosWatched: 0,
+  timeSaved: 0
 };
 
 // Panel flotante
@@ -65,7 +69,7 @@ function createFloatingPanel() {
     position: fixed;
     top: 10px;
     right: 10px;
-    width: 250px;
+    width: 280px;
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 10px;
@@ -76,87 +80,85 @@ function createFloatingPanel() {
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
   `;
 
-  function updatePanel() {
-    if (isActivated) {
-      panel.innerHTML = `
-        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
-        <p style="margin: 0 0 10px 0;">Estado: Activado</p>
-        <label>
-          Intervalo de clics (ms):
-          <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
-        </label>
-        <label>
-          <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
-        </label>
-        <label>
-          <input type="checkbox" id="autoResolve" ${config.autoResolveEnabled ? 'checked' : ''}> Auto resolver
-        </label>
-        <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
-      `;
-    } else {
-      panel.innerHTML = `
-        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
-        <input type="password" id="keyInput" placeholder="Clave de activación" style="width: 100%; margin: 5px 0;">
-        <button id="activateBtn" style="width: 100%;">Activar</button>
-      `;
-    }
+  updatePanelContent(panel);
+  document.body.appendChild(panel);
+}
 
-    // Eventos
-    if (isActivated) {
-      const clickIntervalInput = panel.querySelector('#clickInterval');
-      const videoBypassCheckbox = panel.querySelector('#videoBypass');
-      const autoResolveCheckbox = panel.querySelector('#autoResolve');
-      const togglePanelBtn = panel.querySelector('#togglePanel');
+function updatePanelContent(panel) {
+  let content = `
+    <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+  `;
 
-      if (clickIntervalInput) {
-        clickIntervalInput.addEventListener('change', (e) => {
-          config.clickInterval = parseInt(e.target.value);
-          sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
-        });
-      }
-
-      if (videoBypassCheckbox) {
-        videoBypassCheckbox.addEventListener('change', (e) => {
-          config.videoBypassEnabled = e.target.checked;
-          sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-        });
-      }
-
-      if (autoResolveCheckbox) {
-        autoResolveCheckbox.addEventListener('change', (e) => {
-          config.autoResolveEnabled = e.target.checked;
-          sendToast(`Auto resolver: ${config.autoResolveEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-        });
-      }
-
-      if (togglePanelBtn) {
-        togglePanelBtn.addEventListener('click', () => {
-          const content = panel.querySelectorAll('*:not(#togglePanel)');
-          content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
-          togglePanelBtn.textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
-        });
-      }
-    } else {
-      const activateBtn = panel.querySelector('#activateBtn');
-      const keyInput = panel.querySelector('#keyInput');
-      if (activateBtn && keyInput) {
-        activateBtn.addEventListener('click', () => {
-          const key = keyInput.value;
-          if (key === atob(ENCODED_KEY)) {
-            isActivated = true;
-            sendToast("✅ Clave correcta. Script activado.", 3000);
-            updatePanel();
-            setupMain(); // Activar el script después de la activación
-          } else {
-            sendToast("❌ Clave incorrecta.", 3000);
-          }
-        });
-      }
-    }
+  if (!isActivated) {
+    content += `
+      <label>
+        Clave de activación:
+        <input type="password" id="activationKey" placeholder="Ingresa la clave" style="width: 100%; margin: 5px 0;">
+      </label>
+      <button id="activateBtn" style="width: 100%; margin: 5px 0;">Activar</button>
+    `;
+  } else {
+    content += `
+      <label>
+        Intervalo de clics (ms):
+        <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;" ${!isActivated ? 'disabled' : ''}>
+      </label>
+      <label>
+        <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''} ${!isActivated ? 'disabled' : ''}> Bypass de videos
+      </label>
+      <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
+        <strong>Estadísticas:</strong><br>
+        Ejercicios: ${stats.exercisesCompleted}<br>
+        Videos: ${stats.videosWatched}<br>
+        Tiempo ahorrado: ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s
+      </div>
+      <button id="deactivateBtn" style="width: 100%; margin: 5px 0;">Desactivar</button>
+    `;
   }
 
-  updatePanel();
-  document.body.appendChild(panel);
+  content += `<button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>`;
+
+  panel.innerHTML = content;
+
+  // Eventos
+  if (!isActivated) {
+    document.getElementById('activateBtn').addEventListener('click', () => {
+      const key = document.getElementById('activationKey').value;
+      if (key === activationKey) {
+        isActivated = true;
+        updatePanelContent(panel);
+        setupMain();
+        sendToast("✅ Activado!", 2000);
+      } else {
+        sendToast("❌ Clave incorrecta", 2000);
+      }
+    });
+  } else {
+    document.getElementById('clickInterval').addEventListener('change', (e) => {
+      config.clickInterval = parseInt(e.target.value);
+      sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+    });
+
+    document.getElementById('videoBypass').addEventListener('change', (e) => {
+      config.videoBypassEnabled = e.target.checked;
+      sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+    });
+
+    document.getElementById('deactivateBtn').addEventListener('click', () => {
+      isActivated = false;
+      window.khanwareDominates = false;
+      stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
+      sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
+      updatePanelContent(panel);
+    });
+  }
+
+  document.getElementById('togglePanel').addEventListener('click', () => {
+    const contentEls = panel.querySelectorAll('*:not(#togglePanel)');
+    const isHidden = contentEls[0].style.display === 'none';
+    contentEls.forEach(el => el.style.display = isHidden ? 'block' : 'none');
+    panel.querySelector('#togglePanel').textContent = isHidden ? 'Minimizar' : 'Maximizar';
+  });
 }
 
 // Funciones helpers
@@ -204,8 +206,12 @@ async function loadCss(url) {
   });
 }
 
+let startTime;
+
 function setupMain() {
   if (!isActivated) return;
+
+  startTime = Date.now();
 
   const originalFetch = window.fetch;
 
@@ -233,6 +239,7 @@ function setupMain() {
             init.body = body;
           }
 
+          stats.videosWatched++;
           sendToast("✅｜Bypass injected¡", 1500);
         }
       } catch (e) {}
@@ -293,28 +300,14 @@ function setupMain() {
 
     window.khanwareDominates = true;
 
-    while (window.khanwareDominates) {
-      if (config.autoResolveEnabled) {
-        // Buscar y clicar en tareas incompletas
-        const incomplete = document.querySelector('[data-testid="exercise-card"]:not([data-test-completed]) a, .exercise-card:not(.completed) a, [data-testid="unit-card"]:not([data-test-completed]) a');
-        if (incomplete) {
-          incomplete.click();
-          await delay(2000); // Esperar a que cargue
-        }
-      }
-
+    while (window.khanwareDominates && isActivated) {
       for (const selector of selectors) {
         findAndClickBySelector(selector);
 
         const element = document.querySelector(`${selector}> div`);
         if (element?.innerText === "Mostrar resumo") {
+          stats.exercisesCompleted++;
           sendToast("🎉｜Exercício concluído!", 3000);
-          if (config.autoResolveEnabled) {
-            // Volver a la página principal para buscar la siguiente
-            setTimeout(() => {
-              window.location.href = 'https://pt.khanacademy.org/';
-            }, 5000);
-          }
         }
       }
       await delay(config.clickInterval);
@@ -337,7 +330,7 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     await hideSplashScreen();
 
     createFloatingPanel();
-    setupMain();
+    if (isActivated) setupMain();
     sendToast("😴｜injected!");
     console.clear();
   })();
