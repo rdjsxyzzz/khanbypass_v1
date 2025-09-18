@@ -7,11 +7,8 @@
 // @grant        none
 // ==/UserScript==
 
-// Clave de activación encriptada (base64 de "RSkhanmod")
-const ENCODED_KEY = "UlNraGFubW9k";
-
 let loadedPlugins = [];
-let isActivated = false;
+let isActivated = true;
 
 console.clear();
 const noop = () => {};
@@ -89,75 +86,41 @@ function createFloatingPanel() {
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
   `;
 
-  function updatePanel() {
-    if (isActivated) {
-      panel.innerHTML = `
-        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
-        <p style="margin: 0 0 10px 0;">Estado: Activado</p>
-        <label>
-          Intervalo de clics (ms):
-          <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
-        </label>
-        <label>
-          <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
-        </label>
-        <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
-      `;
-    } else {
-      panel.innerHTML = `
-        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
-        <input type="password" id="keyInput" placeholder="Clave de activación" style="width: 100%; margin: 5px 0;">
-        <button id="activateBtn" style="width: 100%;">Activar</button>
-      `;
-    }
+  panel.innerHTML = `
+    <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+    <p style="margin: 0 0 10px 0;">Estado: ${isActivated ? 'Activado' : 'Desactivado'}</p>
+    <label>
+      Intervalo de clics (ms):
+      <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;" ${!isActivated ? 'disabled' : ''}>
+    </label>
+    <label>
+      <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''} ${!isActivated ? 'disabled' : ''}> Bypass de videos
+    </label>
+    <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
+  `;
 
-    // Eventos
-    if (isActivated) {
-      const clickIntervalInput = document.getElementById('clickInterval');
-      const videoBypassCheckbox = document.getElementById('videoBypass');
-      const togglePanelBtn = document.getElementById('togglePanel');
-
-      if (clickIntervalInput) {
-        clickIntervalInput.addEventListener('change', (e) => {
-          config.clickInterval = parseInt(e.target.value);
-          sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
-        });
-      }
-
-      if (videoBypassCheckbox) {
-        videoBypassCheckbox.addEventListener('change', (e) => {
-          config.videoBypassEnabled = e.target.checked;
-          sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-        });
-      }
-
-      if (togglePanelBtn) {
-        togglePanelBtn.addEventListener('click', () => {
-          const content = panel.querySelectorAll('*:not(#togglePanel)');
-          content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
-          togglePanelBtn.textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
-        });
-      }
-    } else {
-      const activateBtn = document.getElementById('activateBtn');
-      if (activateBtn) {
-        activateBtn.addEventListener('click', () => {
-          const key = document.getElementById('keyInput').value;
-          if (key === atob(ENCODED_KEY)) {
-            isActivated = true;
-            sendToast("✅ Clave correcta. Script activado.", 3000);
-            updatePanel();
-            setupMain(); // Activar el script después de la activación
-          } else {
-            sendToast("❌ Clave incorrecta.", 3000);
-          }
-        });
-      }
-    }
-  }
-
-  updatePanel();
   document.body.appendChild(panel);
+
+  // Eventos
+  document.getElementById('clickInterval').addEventListener('change', (e) => {
+    if (isActivated) {
+      config.clickInterval = parseInt(e.target.value);
+      sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+    }
+  });
+
+  document.getElementById('videoBypass').addEventListener('change', (e) => {
+    if (isActivated) {
+      config.videoBypassEnabled = e.target.checked;
+      sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+    }
+  });
+
+  document.getElementById('togglePanel').addEventListener('click', () => {
+    const content = panel.querySelectorAll('*:not(#togglePanel)');
+    content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
+    panel.querySelector('#togglePanel').textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
+  });
 }
 
 // Funciones helpers
