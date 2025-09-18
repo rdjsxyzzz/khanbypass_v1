@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name         Khan Modded with Panel and Auto Resolver Improved
-// @version      1.5.0
+// @name         Khan Modded with Panel and Auto Resolver Improved v2
+// @version      1.5.1
 // @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver mejorado
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
@@ -348,7 +348,17 @@ async function startAutoResolver() {
 
   while (autoResolverEnabled && isActivated) {
     // Priorizar tareas incompletas
-    let incompleteTasks = Array.from(document.querySelectorAll('a[href*="/task/"]:not(.completed), a[href*="/task/"]:not([aria-checked="true"])'));
+    // Selector actualizado para detectar tareas incompletas en la tabla "Mis tareas"
+    let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
+      .filter(row => {
+        const statusCell = row.querySelector('td:nth-child(3)');
+        return statusCell && !statusCell.textContent.toLowerCase().includes('completado');
+      })
+      .map(row => row.querySelector('td:nth-child(1) a'))
+      .filter(a => a !== null);
+
+    console.log(`Auto Resolver: Tareas incompletas detectadas: ${incompleteTasks.length}`);
+
     if (incompleteTasks.length > 0) {
       for (const task of incompleteTasks) {
         task.click();
@@ -357,7 +367,15 @@ async function startAutoResolver() {
       }
     } else {
       // Si no hay tareas incompletas, buscar unidades incompletas
-      let incompleteUnits = Array.from(document.querySelectorAll('a[href*="/unit/"]:not(.completed), a[href*="/unit/"]:not([aria-checked="true"])'));
+      // Selector actualizado para detectar unidades incompletas en "Cursos de la clase"
+      let incompleteUnits = Array.from(document.querySelectorAll('div[class*="classroom-courses"] a'))
+        .filter(a => {
+          const progressText = a.querySelector('span');
+          return progressText && !progressText.textContent.toLowerCase().includes('dominado');
+        });
+
+      console.log(`Auto Resolver: Unidades incompletas detectadas: ${incompleteUnits.length}`);
+
       if (incompleteUnits.length > 0) {
         for (const unit of incompleteUnits) {
           unit.click();
@@ -365,32 +383,10 @@ async function startAutoResolver() {
           await delay(config.clickInterval + 2000);
         }
       } else {
-        // Si no hay tareas ni unidades incompletas, esperar y reintentar
+        // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
         sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
         await delay(30000);
       }
     }
   }
-}
-
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://pt.khanacademy.org/"; }
-else {
-  (async function init() {
-    await showSplashScreen();
-
-    await Promise.all([
-      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(()=>{ DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
-      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
-      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
-    ]);
-
-    await delay(2000);
-    await hideSplashScreen();
-
-    createFloatingPanel();
-    setupMain();
-    if (autoResolverEnabled) startAutoResolver();
-    sendToast("😴｜injected!");
-    console.clear();
-  })();
 }
