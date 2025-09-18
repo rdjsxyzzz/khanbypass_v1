@@ -364,14 +364,6 @@ async function startAutoResolver() {
         task.click();
         sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
         await delay(config.clickInterval + 2000);
-
-        // Buscar y hacer clic en el botón "Vamos"
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const vamosBtn = buttons.find(btn => btn.textContent.trim().toLowerCase() === 'vamos');
-        if (vamosBtn) {
-          vamosBtn.click();
-          sendToast("Auto Resolver: Clic en 'Vamos' realizado.", 2000);
-        }
       }
     } else {
       // Si no hay tareas incompletas, buscar unidades incompletas
@@ -392,7 +384,8 @@ async function startAutoResolver() {
         }
       } else {
         // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
-        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas.", 3000);
+        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
+        await delay(30000);
       }
     }
   }
