@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Khan Modded with Timer
-// @version      1.4.0
-// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y temporizador
+// @name         Khan Modded with Panel
+// @version      1.3.0
+// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
@@ -12,9 +12,6 @@ const ENCODED_KEY = "UlNraGFubW9k";
 
 let loadedPlugins = [];
 let isActivated = false;
-let activationTime = 0;
-let timerInterval = null;
-const DURATION_MS = 3600000; // 1 hora
 
 console.clear();
 const noop = () => {};
@@ -59,34 +56,6 @@ let config = {
   videoBypassEnabled: true
 };
 
-// Función para formatear tiempo
-function formatTime(ms) {
-  if (ms <= 0) return "0 d 0 h 0 m";
-  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-  return `${days} d ${hours} h ${minutes} m`;
-}
-
-// Función para actualizar el temporizador
-function updateTimer() {
-  if (!isActivated) return;
-  const remaining = DURATION_MS - (Date.now() - activationTime);
-  const timerElement = document.querySelector('#timer');
-  if (timerElement) {
-    timerElement.textContent = formatTime(remaining);
-  }
-  if (remaining <= 0) {
-    isActivated = false;
-    clearInterval(timerInterval);
-    timerInterval = null;
-    sendToast("❌ Key expirada", 5000);
-    updatePanel();
-    // Detener el script
-    window.khanwareDominates = false;
-  }
-}
-
 // Panel flotante
 function createFloatingPanel() {
   const panel = document.createElement('div');
@@ -108,11 +77,9 @@ function createFloatingPanel() {
 
   function updatePanel() {
     if (isActivated) {
-      const remaining = DURATION_MS - (Date.now() - activationTime);
       panel.innerHTML = `
         <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
         <p style="margin: 0 0 10px 0;">Estado: Activado</p>
-        <p id="timer" style="margin: 0 0 10px 0;">${formatTime(remaining)}</p>
         <label>
           Intervalo de clics (ms):
           <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
@@ -165,12 +132,9 @@ function createFloatingPanel() {
           const key = keyInput.value;
           if (key === atob(ENCODED_KEY)) {
             isActivated = true;
-            activationTime = Date.now();
             sendToast("✅ Clave correcta. Script activado.", 3000);
             updatePanel();
             setupMain(); // Activar el script después de la activación
-            // Iniciar temporizador
-            timerInterval = setInterval(updateTimer, 1000);
           } else {
             sendToast("❌ Clave incorrecta.", 3000);
           }
@@ -346,6 +310,7 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     await hideSplashScreen();
 
     createFloatingPanel();
+    setupMain();
     sendToast("😴｜injected!");
     console.clear();
   })();
