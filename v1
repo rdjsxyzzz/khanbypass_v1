@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Khan Modded with Panel and Auto Resolver
-// @version      1.4.0
-// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver de tareas y unidades
+// @name         Khan Modded with Panel and Auto Resolver Improved
+// @version      1.5.0
+// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver mejorado
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
@@ -348,7 +348,7 @@ async function startAutoResolver() {
 
   while (autoResolverEnabled && isActivated) {
     // Priorizar tareas incompletas
-    let incompleteTasks = Array.from(document.querySelectorAll('a[href*="/task/"]:not(.completed)'));
+    let incompleteTasks = Array.from(document.querySelectorAll('a[href*="/task/"]:not(.completed), a[href*="/task/"]:not([aria-checked="true"])'));
     if (incompleteTasks.length > 0) {
       for (const task of incompleteTasks) {
         task.click();
@@ -357,7 +357,7 @@ async function startAutoResolver() {
       }
     } else {
       // Si no hay tareas incompletas, buscar unidades incompletas
-      let incompleteUnits = Array.from(document.querySelectorAll('a[href*="/unit/"]:not(.completed)'));
+      let incompleteUnits = Array.from(document.querySelectorAll('a[href*="/unit/"]:not(.completed), a[href*="/unit/"]:not([aria-checked="true"])'));
       if (incompleteUnits.length > 0) {
         for (const unit of incompleteUnits) {
           unit.click();
@@ -365,10 +365,9 @@ async function startAutoResolver() {
           await delay(config.clickInterval + 2000);
         }
       } else {
-        // Si no hay tareas ni unidades incompletas, recargar la página para reiniciar
-        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reiniciando...", 3000);
-        window.location.reload();
-        return;
+        // Si no hay tareas ni unidades incompletas, esperar y reintentar
+        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
+        await delay(30000);
       }
     }
   }
