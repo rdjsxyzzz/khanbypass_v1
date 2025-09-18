@@ -1,11 +1,14 @@
 // ==UserScript==
-// @name         Khan Modded Enhanced
-// @version      1.2.0
-// @description  Automatiza y modifica interacciones en Khan Academy con panel de control, estadísticas y sistema de activación
+// @name         Khan Modded with Panel and Auto Resolver Improved v2
+// @version      1.5.1
+// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver mejorado
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
 // ==/UserScript==
+
+// Clave de activación encriptada (base64 de "RSkhanmod")
+const ENCODED_KEY = "UlNraGFubW9k";
 
 let loadedPlugins = [];
 let isActivated = false;
@@ -54,13 +57,14 @@ let config = {
   videoBypassEnabled: true
 };
 
-// Estadísticas
+// Contadores
 let stats = {
   exercisesCompleted: 0,
   videosWatched: 0,
   timeSaved: 0
 };
-let startTime = Date.now();
+
+let startTime;
 
 // Panel flotante
 function createFloatingPanel() {
@@ -70,7 +74,7 @@ function createFloatingPanel() {
     position: fixed;
     top: 10px;
     right: 10px;
-    width: 280px;
+    width: 300px;
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 10px;
@@ -79,117 +83,111 @@ function createFloatingPanel() {
     font-family: Arial, sans-serif;
     font-size: 12px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    max-height: 400px;
-    overflow-y: auto;
   `;
 
-  updatePanel(panel);
-  document.body.appendChild(panel);
-}
-
-function updatePanel(panel) {
-  panel.innerHTML = `
-    <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
-    <div id="stats">
-      <p>Ejercicios completados: ${stats.exercisesCompleted}</p>
-      <p>Videos vistos: ${stats.videosWatched}</p>
-      <p>Tiempo ahorrado: ${Math.floor(stats.timeSaved / 1000)}s</p>
-    </div>
-    <label>
-      Intervalo de clics (ms):
-      <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
-    </label>
-    <label>
-      <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
-    </label>
-    <label>
-      <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto resolver tareas
-    </label>
-    <button id="deactivate" style="margin-top: 10px; width: 100%; background: #ff0000;">Desactivar</button>
-    <button id="togglePanel" style="margin-top: 5px; width: 100%;">Minimizar</button>
-  `;
-
-  // Eventos
-  panel.querySelector('#clickInterval').addEventListener('change', (e) => {
-    config.clickInterval = parseInt(e.target.value);
-    sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
-  });
-
-  panel.querySelector('#videoBypass').addEventListener('change', (e) => {
-    config.videoBypassEnabled = e.target.checked;
-    sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-  });
-
-  panel.querySelector('#autoResolver').addEventListener('change', (e) => {
-    autoResolverEnabled = e.target.checked;
-    sendToast(`Auto resolver: ${autoResolverEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-    if (autoResolverEnabled) startAutoResolver();
-  });
-
-  panel.querySelector('#deactivate').addEventListener('click', () => {
-    stats.timeSaved += Date.now() - startTime;
-    isActivated = false;
-    window.khanwareDominates = false;
-    sendToast("Script desactivado", 3000);
-    panel.remove();
-  });
-
-  panel.querySelector('#togglePanel').addEventListener('click', () => {
-    const content = panel.querySelectorAll('*:not(#togglePanel)');
-    const isHidden = content[0].style.display === 'none';
-    content.forEach(el => el.style.display = isHidden ? 'block' : 'none');
-    panel.querySelector('#togglePanel').textContent = isHidden ? 'Minimizar' : 'Maximizar';
-  });
-}
-
-// Sistema de activación
-function promptActivationKey() {
-  const key = prompt("Ingresa la clave de activación para Khan Modded:");
-  // Clave hardcodeada para ejemplo; en producción, usa una más segura
-  const validKey = "KHAN2023"; // Cambia esto
-  if (key === validKey) {
-    isActivated = true;
-    sendToast("Activación exitosa!", 3000);
-    return true;
-  } else {
-    sendToast("Clave incorrecta. Script no activado.", 5000);
-    return false;
-  }
-}
-
-// Auto resolver
-function startAutoResolver() {
-  if (!autoResolverEnabled) return;
-
-  // Detectar tareas incompletas (filas de tabla no 'completado')
-  const incompleteTasks = Array.from(document.querySelectorAll('table tr')).filter(row => {
-    const status = row.querySelector('td:last-child')?.textContent?.trim();
-    return status && !status.includes('completado') && !status.includes('Completo');
-  });
-
-  // Detectar unidades incompletas (enlaces no 'dominado')
-  const incompleteUnits = Array.from(document.querySelectorAll('a[href*="/classroom/"]')).filter(link => {
-    const text = link.textContent?.trim();
-    return text && !text.includes('dominado') && !text.includes('Dominated');
-  });
-
-  console.log(`Tareas incompletas detectadas: ${incompleteTasks.length}`);
-  console.log(`Unidades incompletas detectadas: ${incompleteUnits.length}`);
-
-  if (incompleteTasks.length > 0) {
-    // Priorizar tareas
-    const taskLink = incompleteTasks[0].querySelector('a');
-    if (taskLink) {
-      sendToast(`Abriendo tarea incompleta: ${taskLink.textContent}`, 3000);
-      taskLink.click();
+  function updatePanel() {
+    if (isActivated) {
+      panel.innerHTML = `
+        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+        <p style="margin: 0 0 10px 0;">Estado: Activado</p>
+        <label>
+          Intervalo de clics (ms):
+          <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
+        </label>
+        <label>
+          <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
+        </label>
+        <label>
+          <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto Resolver Tareas/Unidades
+        </label>
+        <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
+          <strong>Estadísticas:</strong><br>
+          Ejercicios: ${stats.exercisesCompleted}<br>
+          Videos: ${stats.videosWatched}<br>
+          Tiempo ahorrado: ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s
+        </div>
+        <button id="deactivateBtn" style="width: 100%; margin: 5px 0;">Desactivar</button>
+        <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
+      `;
+    } else {
+      panel.innerHTML = `
+        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+        <input type="password" id="keyInput" placeholder="Clave de activación" style="width: 100%; margin: 5px 0;">
+        <button id="activateBtn" style="width: 100%;">Activar</button>
+      `;
     }
-  } else if (incompleteUnits.length > 0) {
-    const unitLink = incompleteUnits[0];
-    sendToast(`Abriendo unidad incompleta: ${unitLink.textContent}`, 3000);
-    unitLink.click();
-  } else {
-    sendToast("No se encontraron tareas o unidades incompletas.", 3000);
+
+    // Eventos
+    if (isActivated) {
+      const clickIntervalInput = panel.querySelector('#clickInterval');
+      const videoBypassCheckbox = panel.querySelector('#videoBypass');
+      const autoResolverCheckbox = panel.querySelector('#autoResolver');
+      const deactivateBtn = panel.querySelector('#deactivateBtn');
+      const togglePanelBtn = panel.querySelector('#togglePanel');
+
+      if (clickIntervalInput) {
+        clickIntervalInput.addEventListener('change', (e) => {
+          config.clickInterval = parseInt(e.target.value);
+          sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+        });
+      }
+
+      if (videoBypassCheckbox) {
+        videoBypassCheckbox.addEventListener('change', (e) => {
+          config.videoBypassEnabled = e.target.checked;
+          sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+        });
+      }
+
+      if (autoResolverCheckbox) {
+        autoResolverCheckbox.addEventListener('change', (e) => {
+          autoResolverEnabled = e.target.checked;
+          sendToast(`Auto Resolver: ${autoResolverEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+          if (autoResolverEnabled) {
+            startAutoResolver();
+          }
+        });
+      }
+
+      if (deactivateBtn) {
+        deactivateBtn.addEventListener('click', () => {
+          isActivated = false;
+          window.khanwareDominates = false;
+          autoResolverEnabled = false;
+          stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
+          sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
+          updatePanel();
+        });
+      }
+
+      if (togglePanelBtn) {
+        togglePanelBtn.addEventListener('click', () => {
+          const content = panel.querySelectorAll('*:not(#togglePanel)');
+          content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
+          togglePanelBtn.textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
+        });
+      }
+    } else {
+      const activateBtn = panel.querySelector('#activateBtn');
+      const keyInput = panel.querySelector('#keyInput');
+      if (activateBtn && keyInput) {
+        activateBtn.addEventListener('click', () => {
+          const key = keyInput.value;
+          if (key === atob(ENCODED_KEY)) {
+            isActivated = true;
+            sendToast("✅ Clave correcta. Script activado.", 3000);
+            updatePanel();
+            setupMain(); // Activar el script después de la activación
+          } else {
+            sendToast("❌ Clave incorrecta.", 3000);
+          }
+        });
+      }
+    }
   }
+
+  updatePanel();
+  document.body.appendChild(panel);
 }
 
 // Funciones helpers
@@ -240,9 +238,12 @@ async function loadCss(url) {
 function setupMain() {
   if (!isActivated) return;
 
+  startTime = Date.now();
+
   const originalFetch = window.fetch;
 
   window.fetch = async function(input, init) {
+
     let body;
     if (input instanceof Request) {
       body = await input.clone().text();
@@ -266,7 +267,6 @@ function setupMain() {
           }
 
           stats.videosWatched++;
-          updatePanel(document.getElementById('khanModPanel'));
           sendToast("✅｜Bypass injected¡", 1500);
         }
       } catch (e) {}
@@ -334,7 +334,6 @@ function setupMain() {
         const element = document.querySelector(`${selector}> div`);
         if (element?.innerText === "Mostrar resumo") {
           stats.exercisesCompleted++;
-          updatePanel(document.getElementById('khanModPanel'));
           sendToast("🎉｜Exercício concluído!", 3000);
         }
       }
@@ -343,25 +342,51 @@ function setupMain() {
   })();
 }
 
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://pt.khanacademy.org/";
-} else {
-  (async function init() {
-    if (!promptActivationKey()) return;
+// Auto Resolver: Prioriza tareas incompletas y luego unidades incompletas, reiniciando al finalizar
+async function startAutoResolver() {
+  if (!isActivated || !autoResolverEnabled) return;
 
-    await showSplashScreen();
+  while (autoResolverEnabled && isActivated) {
+    // Priorizar tareas incompletas
+    // Selector actualizado para detectar tareas incompletas en la tabla "Mis tareas"
+    let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
+      .filter(row => {
+        const statusCell = row.querySelector('td:nth-child(3)');
+        return statusCell && !statusCell.textContent.toLowerCase().includes('completado');
+      })
+      .map(row => row.querySelector('td:nth-child(1) a'))
+      .filter(a => a !== null);
 
-    await Promise.all([
-      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(()=>{ DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
-      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
-      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
-    ]);
+    console.log(`Auto Resolver: Tareas incompletas detectadas: ${incompleteTasks.length}`);
 
-    await delay(2000);
-    await hideSplashScreen();
+    if (incompleteTasks.length > 0) {
+      for (const task of incompleteTasks) {
+        task.click();
+        sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
+        await delay(config.clickInterval + 2000);
+      }
+    } else {
+      // Si no hay tareas incompletas, buscar unidades incompletas
+      // Selector actualizado para detectar unidades incompletas en "Cursos de la clase"
+      let incompleteUnits = Array.from(document.querySelectorAll('div[class*="classroom-courses"] a'))
+        .filter(a => {
+          const progressText = a.querySelector('span');
+          return progressText && !progressText.textContent.toLowerCase().includes('dominado');
+        });
 
-    createFloatingPanel();
-    setupMain();
-    sendToast("😴｜injected!");
-    console.clear();
-  })();
+      console.log(`Auto Resolver: Unidades incompletas detectadas: ${incompleteUnits.length}`);
+
+      if (incompleteUnits.length > 0) {
+        for (const unit of incompleteUnits) {
+          unit.click();
+          sendToast("Auto Resolver: Abriendo unidad incompleta...", 2000);
+          await delay(config.clickInterval + 2000);
+        }
+      } else {
+        // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
+        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
+        await delay(30000);
+      }
+    }
+  }
 }
