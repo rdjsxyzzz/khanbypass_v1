@@ -57,7 +57,7 @@ let config = {
 };
 
 // Estadísticas
-let stats = JSON.parse(localStorage.getItem('khanStats')) || {
+let stats = {
   exercises: 0,
   videos: 0,
   timeSaved: 0
