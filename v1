@@ -1,354 +1,783 @@
 // ==UserScript==
-// @name         Khan Modded Advanced
-// @version      1.3.0
-// @description  Automatiza y modifica interacciones en Khan Academy con panel de control, estadísticas, auto-resolver y sistema de activación
-// @author       rxdrzx_
-// @match        *://*.khanacademy.org/*
-// @grant        none
+
+// @name         Khan Modded with Panel and Auto Resolver Improved v2
+
+// @version      1.5.1
+
+// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver mejorado
+
+// @author       rxdrzx_
+
+// @match        *://*.khanacademy.org/*
+
+// @grant        none
+
 // ==/UserScript==
 
-// Clave de activación codificada (cambia esto por tu clave deseada)
-const ENCODED_ACTIVATION_KEY = btoa('khanmod2023'); // Codifica tu clave aquí
+
+
+// Clave de activación encriptada (base64 de "RSkhanmod")
+
+const ENCODED_KEY = "UlNraGFubW9k";
+
+
 
 let loadedPlugins = [];
+
 let isActivated = false;
+
 let autoResolverEnabled = false;
 
+
+
 console.clear();
+
 const noop = () => {};
+
 console.warn = console.error = window.debug = noop;
+
+
 
 const splashScreen = document.createElement('splashScreen');
 
+
+
 class EventEmitter {
-  constructor() { this.events = {}; }
-  on(t, e) {
-    (Array.isArray(t) ? t : [t]).forEach(t => {
-      (this.events[t] = this.events[t] || []).push(e);
-    });
-  }
-  off(t, e) {
-    (Array.isArray(t) ? t : [t]).forEach(t => {
-      this.events[t] && (this.events[t] = this.events[t].filter(h => h !== e));
-    });
-  }
-  emit(t, ...e) {
-    this.events[t]?.forEach(h => h(...e));
-  }
-  once(t, e) {
-    const s = (...i) => {
-      e(...i);
-      this.off(t, s);
-    };
-    this.on(t, s);
-  }
+
+  constructor() { this.events = {}; }
+
+  on(t, e) {
+
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+
+      (this.events[t] = this.events[t] || []).push(e);
+
+    });
+
+  }
+
+  off(t, e) {
+
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+
+      this.events[t] && (this.events[t] = this.events[t].filter(h => h !== e));
+
+    });
+
+  }
+
+  emit(t, ...e) {
+
+    this.events[t]?.forEach(h => h(...e));
+
+  }
+
+  once(t, e) {
+
+    const s = (...i) => {
+
+      e(...i);
+
+      this.off(t, s);
+
+    };
+
+    this.on(t, s);
+
+  }
+
 }
+
+
 
 const plppdo = new EventEmitter();
 
+
+
 // Observer otimizado
+
 new MutationObserver(mutationsList =>
-  mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
+
+  mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
+
 ).observe(document.body, { childList: true, subtree: true });
 
+
+
 // Configuración global
+
 let config = {
-  clickInterval: 25000, // ms
-  videoBypassEnabled: true
+
+  clickInterval: 25000, // ms
+
+  videoBypassEnabled: true
+
 };
 
-// Estadísticas
+
+
+// Contadores
+
 let stats = {
-  exercisesCompleted: 0,
-  videosWatched: 0,
-  timeSaved: 0
+
+  exercisesCompleted: 0,
+
+  videosWatched: 0,
+
+  timeSaved: 0
+
 };
 
-let startTime = Date.now();
+
+
+let startTime;
+
+
 
 // Panel flotante
+
 function createFloatingPanel() {
-  const panel = document.createElement('div');
-  panel.id = 'khanModPanel';
-  panel.style.cssText = `
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    width: 280px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px;
-    border-radius: 8px;
-    z-index: 10000;
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    max-height: 400px;
-    overflow-y: auto;
-  `;
 
-  updatePanel(panel);
-  document.body.appendChild(panel);
+  const panel = document.createElement('div');
+
+  panel.id = 'khanModPanel';
+
+  panel.style.cssText = `
+
+    position: fixed;
+
+    top: 10px;
+
+    right: 10px;
+
+    width: 300px;
+
+    background: rgba(0, 0, 0, 0.8);
+
+    color: white;
+
+    padding: 10px;
+
+    border-radius: 8px;
+
+    z-index: 10000;
+
+    font-family: Arial, sans-serif;
+
+    font-size: 12px;
+
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+
+  `;
+
+
+
+  function updatePanel() {
+
+    if (isActivated) {
+
+      panel.innerHTML = `
+
+        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+
+        <p style="margin: 0 0 10px 0;">Estado: Activado</p>
+
+        <label>
+
+          Intervalo de clics (ms):
+
+          <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
+
+        </label>
+
+        <label>
+
+          <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
+
+        </label>
+
+        <label>
+
+          <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto Resolver Tareas/Unidades
+
+        </label>
+
+        <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
+
+          <strong>Estadísticas:</strong><br>
+
+          Ejercicios: ${stats.exercisesCompleted}<br>
+
+          Videos: ${stats.videosWatched}<br>
+
+          Tiempo ahorrado: ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s
+
+        </div>
+
+        <button id="deactivateBtn" style="width: 100%; margin: 5px 0;">Desactivar</button>
+
+        <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
+
+      `;
+
+    } else {
+
+      panel.innerHTML = `
+
+        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+
+        <input type="password" id="keyInput" placeholder="Clave de activación" style="width: 100%; margin: 5px 0;">
+
+        <button id="activateBtn" style="width: 100%;">Activar</button>
+
+      `;
+
+    }
+
+
+
+    // Eventos
+
+    if (isActivated) {
+
+      const clickIntervalInput = panel.querySelector('#clickInterval');
+
+      const videoBypassCheckbox = panel.querySelector('#videoBypass');
+
+      const autoResolverCheckbox = panel.querySelector('#autoResolver');
+
+      const deactivateBtn = panel.querySelector('#deactivateBtn');
+
+      const togglePanelBtn = panel.querySelector('#togglePanel');
+
+
+
+      if (clickIntervalInput) {
+
+        clickIntervalInput.addEventListener('change', (e) => {
+
+          config.clickInterval = parseInt(e.target.value);
+
+          sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+
+        });
+
+      }
+
+
+
+      if (videoBypassCheckbox) {
+
+        videoBypassCheckbox.addEventListener('change', (e) => {
+
+          config.videoBypassEnabled = e.target.checked;
+
+          sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+
+        });
+
+      }
+
+
+
+      if (autoResolverCheckbox) {
+
+        autoResolverCheckbox.addEventListener('change', (e) => {
+
+          autoResolverEnabled = e.target.checked;
+
+          sendToast(`Auto Resolver: ${autoResolverEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+
+          if (autoResolverEnabled) {
+
+            startAutoResolver();
+
+          }
+
+        });
+
+      }
+
+
+
+      if (deactivateBtn) {
+
+        deactivateBtn.addEventListener('click', () => {
+
+          isActivated = false;
+
+          window.khanwareDominates = false;
+
+          autoResolverEnabled = false;
+
+          stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
+
+          sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
+
+          updatePanel();
+
+        });
+
+      }
+
+
+
+      if (togglePanelBtn) {
+
+        togglePanelBtn.addEventListener('click', () => {
+
+          const content = panel.querySelectorAll('*:not(#togglePanel)');
+
+          content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
+
+          togglePanelBtn.textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
+
+        });
+
+      }
+
+    } else {
+
+      const activateBtn = panel.querySelector('#activateBtn');
+
+      const keyInput = panel.querySelector('#keyInput');
+
+      if (activateBtn && keyInput) {
+
+        activateBtn.addEventListener('click', () => {
+
+          const key = keyInput.value;
+
+          if (key === atob(ENCODED_KEY)) {
+
+            isActivated = true;
+
+            sendToast("✅ Clave correcta. Script activado.", 3000);
+
+            updatePanel();
+
+            setupMain(); // Activar el script después de la activación
+
+          } else {
+
+            sendToast("❌ Clave incorrecta.", 3000);
+
+          }
+
+        });
+
+      }
+
+    }
+
+  }
+
+
+
+  updatePanel();
+
+  document.body.appendChild(panel);
+
 }
 
-function updatePanel(panel) {
-  const elapsed = Math.floor((Date.now() - startTime) / 1000);
-  panel.innerHTML = `
-    <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
-    <div style="margin-bottom: 10px;">
-      <strong>Estadísticas:</strong><br>
-      Ejercicios: ${stats.exercisesCompleted}<br>
-      Videos: ${stats.videosWatched}<br>
-      Tiempo ahorrado: ${Math.floor(stats.timeSaved / 60)}min ${stats.timeSaved % 60}s<br>
-      Tiempo activo: ${Math.floor(elapsed / 60)}min ${elapsed % 60}s
-    </div>
-    <label>
-      Intervalo de clics (ms):
-      <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
-    </label>
-    <label>
-      <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
-    </label>
-    <label>
-      <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto-resolver
-    </label>
-    <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
-  `;
 
-  // Re-asignar eventos
-  setTimeout(() => {
-    document.getElementById('clickInterval')?.addEventListener('change', (e) => {
-      config.clickInterval = parseInt(e.target.value);
-      sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
-    });
-
-    document.getElementById('videoBypass')?.addEventListener('change', (e) => {
-      config.videoBypassEnabled = e.target.checked;
-      sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-    });
-
-    document.getElementById('autoResolver')?.addEventListener('change', (e) => {
-      autoResolverEnabled = e.target.checked;
-      sendToast(`Auto-resolver: ${autoResolverEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-      if (autoResolverEnabled) startAutoResolver();
-    });
-
-    document.getElementById('togglePanel')?.addEventListener('click', () => {
-      const content = panel.querySelectorAll('*:not(#togglePanel)');
-      content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
-      panel.querySelector('#togglePanel').textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
-    });
-  }, 100);
-}
 
 // Funciones helpers
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 const findAndClickBySelector = selector => document.querySelector(selector)?.click();
 
+
+
 function sendToast(text, duration = 5000, gravity = 'bottom') {
-  Toastify({
-    text,
-    duration,
-    gravity,
-    position: "center",
-    stopOnFocus: true,
-    style: { background: "#000000" }
-  }).showToast();
+
+  Toastify({
+
+    text,
+
+    duration,
+
+    gravity,
+
+    position: "center",
+
+    stopOnFocus: true,
+
+    style: { background: "#000000" }
+
+  }).showToast();
+
 }
+
+
 
 async function showSplashScreen() {
-  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
-  splashScreen.innerHTML = '<span style="color:white;">KHAN  </span><span style="color:#ff0000;"> MODED</span>';
-  document.body.appendChild(splashScreen);
-  setTimeout(() => splashScreen.style.opacity = '1', 10);
+
+  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
+
+  splashScreen.innerHTML = '<span style="color:white;">KHAN  </span><span style="color:#ff0000;"> MODED</span>';
+
+  document.body.appendChild(splashScreen);
+
+  setTimeout(() => splashScreen.style.opacity = '1', 10);
+
 }
+
+
 
 async function hideSplashScreen() {
-  splashScreen.style.opacity = '0';
-  setTimeout(() => splashScreen.remove(), 1000);
+
+  splashScreen.style.opacity = '0';
+
+  setTimeout(() => splashScreen.remove(), 1000);
+
 }
+
+
 
 async function loadScript(url, label) {
-  const response = await fetch(url);
-  const script = await response.text();
-  loadedPlugins.push(label);
-  eval(script);
+
+  const response = await fetch(url);
+
+  const script = await response.text();
+
+  loadedPlugins.push(label);
+
+  eval(script);
+
 }
+
+
 
 async function loadCss(url) {
-  return new Promise(resolve => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.type = 'text/css';
-    link.href = url;
-    link.onload = resolve;
-    document.head.appendChild(link);
-  });
+
+  return new Promise(resolve => {
+
+    const link = document.createElement('link');
+
+    link.rel = 'stylesheet';
+
+    link.type = 'text/css';
+
+    link.href = url;
+
+    link.onload = resolve;
+
+    document.head.appendChild(link);
+
+  });
+
 }
 
-function startAutoResolver() {
-  if (!autoResolverEnabled) return;
 
-  // Buscar tareas incompletas (filas de tabla que no dicen 'completado')
-  const taskRows = document.querySelectorAll('table tr');
-  for (const row of taskRows) {
-    const statusCell = row.querySelector('td:last-child');
-    if (statusCell && !statusCell.textContent.includes('completado') && !statusCell.textContent.includes('Completo')) {
-      const link = row.querySelector('a');
-      if (link) {
-        link.click();
-        sendToast('Abriendo tarea incompleta...', 3000);
-        return; // Solo una a la vez
-      }
-    }
-  }
-
-  // Si no hay tareas, buscar unidades incompletas
-  const unitLinks = document.querySelectorAll('a[href*="/classroom/"]');
-  for (const link of unitLinks) {
-    const parent = link.closest('[data-testid]');
-    if (parent && !parent.textContent.includes('dominado') && !parent.textContent.includes('Dominado')) {
-      link.click();
-      sendToast('Abriendo unidad incompleta...', 3000);
-      return;
-    }
-  }
-
-  sendToast('No se encontraron tareas o unidades incompletas.', 3000);
-}
 
 function setupMain() {
-  const originalFetch = window.fetch;
 
-  window.fetch = async function(input, init) {
-    let body;
-    if (input instanceof Request) {
-      body = await input.clone().text();
-    } else if (init?.body) {
-      body = init.body;
-    }
+  if (!isActivated) return;
 
-    if (config.videoBypassEnabled && body?.includes('"operationName":"updateUserVideoProgress"')) {
-      try {
-        let bodyObj = JSON.parse(body);
-        if (bodyObj.variables?.input) {
-          const durationSeconds = bodyObj.variables.input.durationSeconds;
-          bodyObj.variables.input.secondsWatched = durationSeconds;
-          bodyObj.variables.input.lastSecondWatched = durationSeconds;
-          body = JSON.stringify(bodyObj);
 
-          if (input instanceof Request) {
-            input = new Request(input, { body });
-          } else {
-            init.body = body;
-          }
 
-          stats.videosWatched++;
-          stats.timeSaved += durationSeconds;
-          updatePanel(document.getElementById('khanModPanel'));
-          sendToast("✅｜Bypass injected¡", 1500);
-        }
-      } catch (e) {}
-    }
+  startTime = Date.now();
 
-    const originalResponse = await originalFetch.apply(this, arguments);
 
-    try {
-      const clonedResponse = originalResponse.clone();
-      const responseBody = await clonedResponse.text();
-      let responseObj = JSON.parse(responseBody);
 
-      if (responseObj?.data?.assessmentItem?.item?.itemData) {
-        let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+  const originalFetch = window.fetch;
 
-        if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
-          itemData.answerArea = {
-            calculator: false,
-            chi2Table: false,
-            periodicTable: false,
-            tTable: false,
-            zTable: false
-          };
 
-          itemData.question.content = "modified by: rxdrzx_ @tk @ig " + `[[☃ radio 1]]`;
-          itemData.question.widgets = {
-            "radio 1": {
-              type: "radio",
-              options: {
-               choices: [{ content: "correct ✅", correct: true },
-        { content: "incorrect ❌", correct: false }]
-              }
-            }
-          };
 
-          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+  window.fetch = async function(input, init) {
 
-          return new Response(JSON.stringify(responseObj), {
-            status: originalResponse.status,
-            statusText: originalResponse.statusText,
-            headers: originalResponse.headers
-          });
-        }
-      }
-    } catch (e) {}
 
-    return originalResponse;
-  };
 
-  (async () => {
-    const selectors = [
-      `[data-testid="choice-icon__library-choice-icon"]`,
-      `[data-testid="exercise-check-answer"]`,
-      `[data-testid="exercise-next-question"]`,
-      `._1udzurba`,
-      `._awve9b`
-    ];
+    let body;
 
-    window.khanwareDominates = true;
+    if (input instanceof Request) {
 
-    while (window.khanwareDominates) {
-      for (const selector of selectors) {
-        findAndClickBySelector(selector);
+      body = await input.clone().text();
 
-        const element = document.querySelector(`${selector}> div`);
-        if (element?.innerText === "Mostrar resumo") {
-          stats.exercisesCompleted++;
-          updatePanel(document.getElementById('khanModPanel'));
-          sendToast("🎉｜Exercício concluído!", 3000);
-        }
-      }
-      await delay(config.clickInterval);
-    }
-  })();
+    } else if (init?.body) {
+
+      body = init.body;
+
+    }
+
+
+
+    if (config.videoBypassEnabled && body?.includes('"operationName":"updateUserVideoProgress"')) {
+
+      try {
+
+        let bodyObj = JSON.parse(body);
+
+        if (bodyObj.variables?.input) {
+
+          const durationSeconds = bodyObj.variables.input.durationSeconds;
+
+          bodyObj.variables.input.secondsWatched = durationSeconds;
+
+          bodyObj.variables.input.lastSecondWatched = durationSeconds;
+
+          body = JSON.stringify(bodyObj);
+
+
+
+          if (input instanceof Request) {
+
+            input = new Request(input, { body });
+
+          } else {
+
+            init.body = body;
+
+          }
+
+
+
+          stats.videosWatched++;
+
+          sendToast("✅｜Bypass injected¡", 1500);
+
+        }
+
+      } catch (e) {}
+
+    }
+
+
+
+    const originalResponse = await originalFetch.apply(this, arguments);
+
+
+
+    try {
+
+      const clonedResponse = originalResponse.clone();
+
+      const responseBody = await clonedResponse.text();
+
+      let responseObj = JSON.parse(responseBody);
+
+
+
+      if (responseObj?.data?.assessmentItem?.item?.itemData) {
+
+        let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+
+
+
+        if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+
+          itemData.answerArea = {
+
+            calculator: false,
+
+            chi2Table: false,
+
+            periodicTable: false,
+
+            tTable: false,
+
+            zTable: false
+
+          };
+
+
+
+          itemData.question.content = "modified by: rxdrzx_ @tk @ig " + `[[☃ radio 1]]`;
+
+          itemData.question.widgets = {
+
+            "radio 1": {
+
+              type: "radio",
+
+              options: {
+
+               choices: [{ content: "correct ✅", correct: true },
+
+        { content: "incorrect ❌", correct: false }]
+
+              }
+
+            }
+
+          };
+
+
+
+          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+
+
+
+          return new Response(JSON.stringify(responseObj), {
+
+            status: originalResponse.status,
+
+            statusText: originalResponse.statusText,
+
+            headers: originalResponse.headers
+
+          });
+
+        }
+
+      }
+
+    } catch (e) {}
+
+
+
+    return originalResponse;
+
+  };
+
+
+
+  (async () => {
+
+    const selectors = [
+
+      `[data-testid="choice-icon__library-choice-icon"]`,
+
+      `[data-testid="exercise-check-answer"]`,
+
+      `[data-testid="exercise-next-question"]`,
+
+      `._1udzurba`,
+
+      `._awve9b`
+
+    ];
+
+
+
+    window.khanwareDominates = true;
+
+
+
+    while (window.khanwareDominates && isActivated) {
+
+      for (const selector of selectors) {
+
+        findAndClickBySelector(selector);
+
+
+
+        const element = document.querySelector(`${selector}> div`);
+
+        if (element?.innerText === "Mostrar resumo") {
+
+          stats.exercisesCompleted++;
+
+          sendToast("🎉｜Exercício concluído!", 3000);
+
+        }
+
+      }
+
+      await delay(config.clickInterval);
+
+    }
+
+  })();
+
 }
 
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://pt.khanacademy.org/";
-} else {
-  (async function init() {
-    // Sistema de activación
-    const userKey = prompt('Ingresa la clave de activación para Khan Modded:');
-    if (!userKey || atob(ENCODED_ACTIVATION_KEY) !== userKey) {
-      alert('Clave incorrecta. El script no se activará.');
-      return;
-    }
-    isActivated = true;
-    sendToast('Clave correcta. Activando script...', 3000);
 
-    await showSplashScreen();
 
-    await Promise.all([
-      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(()=>{ DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
-      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
-      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
-    ]);
+// Auto Resolver: Prioriza tareas incompletas y luego unidades incompletas, reiniciando al finalizar
 
-    await delay(2000);
-    await hideSplashScreen();
+async function startAutoResolver() {
 
-    createFloatingPanel();
-    setupMain();
-    if (autoResolverEnabled) startAutoResolver();
-    sendToast("😴｜injected!");
-    console.clear();
-  })();
+  if (!isActivated || !autoResolverEnabled) return;
+
+
+
+  while (autoResolverEnabled && isActivated) {
+
+    // Priorizar tareas incompletas
+
+    // Selector actualizado para detectar tareas incompletas en la tabla "Mis tareas"
+
+    let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
+
+      .filter(row => {
+
+        const statusCell = row.querySelector('td:nth-child(3)');
+
+        return statusCell && !statusCell.textContent.toLowerCase().includes('completado');
+
+      })
+
+      .map(row => row.querySelector('td:nth-child(1) a'))
+
+      .filter(a => a !== null);
+
+
+
+    console.log(`Auto Resolver: Tareas incompletas detectadas: ${incompleteTasks.length}`);
+
+
+
+    if (incompleteTasks.length > 0) {
+
+      for (const task of incompleteTasks) {
+
+        task.click();
+
+        sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
+
+        await delay(config.clickInterval + 2000);
+
+      }
+
+    } else {
+
+      // Si no hay tareas incompletas, buscar unidades incompletas
+
+      // Selector actualizado para detectar unidades incompletas en "Cursos de la clase"
+
+      let incompleteUnits = Array.from(document.querySelectorAll('div[class*="classroom-courses"] a'))
+
+        .filter(a => {
+
+          const progressText = a.querySelector('span');
+
+          return progressText && !progressText.textContent.toLowerCase().includes('dominado');
+
+        });
+
+
+
+      console.log(`Auto Resolver: Unidades incompletas detectadas: ${incompleteUnits.length}`);
+
+
+
+      if (incompleteUnits.length > 0) {
+
+        for (const unit of incompleteUnits) {
+
+          unit.click();
+
+          sendToast("Auto Resolver: Abriendo unidad incompleta...", 2000);
+
+          await delay(config.clickInterval + 2000);
+
+        }
+
+      } else {
+
+        // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
+
+        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
+
+        await delay(30000);
+
+      }
+
+    }
+
+  }
+
 }
