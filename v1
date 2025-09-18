@@ -56,6 +56,20 @@ let config = {
   videoBypassEnabled: true
 };
 
+// Función de activación
+function activateScript() {
+  const key = window.prompt("Ingresa la clave de activación para Khan Modded:");
+  if (key === atob(ENCODED_KEY)) {
+    isActivated = true;
+    sendToast("✅ Clave correcta. Script activado.", 3000);
+    return true;
+  } else {
+    alert("Clave incorrecta. El script no se activará.");
+    sendToast("❌ Clave incorrecta.", 3000);
+    return false;
+  }
+}
+
 // Panel flotante
 function createFloatingPanel() {
   const panel = document.createElement('div');
@@ -99,33 +113,46 @@ function createFloatingPanel() {
 
     // Eventos
     if (isActivated) {
-      document.getElementById('clickInterval').addEventListener('change', (e) => {
-        config.clickInterval = parseInt(e.target.value);
-        sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
-      });
+      const clickIntervalInput = document.getElementById('clickInterval');
+      const videoBypassCheckbox = document.getElementById('videoBypass');
+      const togglePanelBtn = document.getElementById('togglePanel');
 
-      document.getElementById('videoBypass').addEventListener('change', (e) => {
-        config.videoBypassEnabled = e.target.checked;
-        sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-      });
+      if (clickIntervalInput) {
+        clickIntervalInput.addEventListener('change', (e) => {
+          config.clickInterval = parseInt(e.target.value);
+          sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+        });
+      }
 
-      document.getElementById('togglePanel').addEventListener('click', () => {
-        const content = panel.querySelectorAll('*:not(#togglePanel)');
-        content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
-        panel.querySelector('#togglePanel').textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
-      });
+      if (videoBypassCheckbox) {
+        videoBypassCheckbox.addEventListener('change', (e) => {
+          config.videoBypassEnabled = e.target.checked;
+          sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+        });
+      }
+
+      if (togglePanelBtn) {
+        togglePanelBtn.addEventListener('click', () => {
+          const content = panel.querySelectorAll('*:not(#togglePanel)');
+          content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
+          togglePanelBtn.textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
+        });
+      }
     } else {
-      document.getElementById('activateBtn').addEventListener('click', () => {
-        const key = document.getElementById('keyInput').value;
-        if (key === atob(ENCODED_KEY)) {
-          isActivated = true;
-          sendToast("✅ Clave correcta. Script activado.", 3000);
-          updatePanel();
-          setupMain(); // Activar el script después de la activación
-        } else {
-          sendToast("❌ Clave incorrecta.", 3000);
-        }
-      });
+      const activateBtn = document.getElementById('activateBtn');
+      if (activateBtn) {
+        activateBtn.addEventListener('click', () => {
+          const key = document.getElementById('keyInput').value;
+          if (key === atob(ENCODED_KEY)) {
+            isActivated = true;
+            sendToast("✅ Clave correcta. Script activado.", 3000);
+            updatePanel();
+            setupMain(); // Activar el script después de la activación
+          } else {
+            sendToast("❌ Clave incorrecta.", 3000);
+          }
+        });
+      }
     }
   }
 
