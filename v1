@@ -11,7 +11,7 @@
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let loadedPlugins = [];
-let isActivated = false;
+let isActivated = true;
 let autoResolverEnabled = false;
 
 console.clear();
