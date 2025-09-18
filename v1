@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Khan Modded with Panel
-// @version      1.3.0
-// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante
+// @name         Khan Modded with Stats
+// @version      1.5.0
+// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y estadísticas
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
@@ -56,6 +56,13 @@ let config = {
   videoBypassEnabled: true
 };
 
+// Estadísticas
+let stats = JSON.parse(localStorage.getItem('khanStats')) || {
+  exercises: 0,
+  videos: 0,
+  timeSaved: 0
+};
+
 // Panel flotante
 function createFloatingPanel() {
   const panel = document.createElement('div');
@@ -80,6 +87,9 @@ function createFloatingPanel() {
       panel.innerHTML = `
         <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
         <p style="margin: 0 0 10px 0;">Estado: Activado</p>
+        <p style="margin: 0 0 5px 0;">Ejercicios completados: <span id="exercisesCount">${stats.exercises}</span></p>
+        <p style="margin: 0 0 5px 0;">Videos vistos: <span id="videosCount">${stats.videos}</span></p>
+        <p style="margin: 0 0 10px 0;">Tiempo ahorrado: <span id="timeSaved">${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s</span></p>
         <label>
           Intervalo de clics (ms):
           <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
@@ -291,6 +301,9 @@ function setupMain() {
     while (window.khanwareDominates) {
       for (const selector of selectors) {
         findAndClickBySelector(selector);
+        stats.timeSaved += config.clickInterval / 1000;
+        localStorage.setItem('khanStats', JSON.stringify(stats));
+        updatePanelStats();
 
         const element = document.querySelector(`${selector}> div`);
         if (element?.innerText === "Mostrar resumo") {
