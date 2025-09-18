@@ -1,13 +1,17 @@
 // ==UserScript==
-// @name         Khan Modded Improved
-// @version      1.1.0
-// @description  Automatiza y modifica interacciones en Khan Academy con panel de control flotante
+// @name         Khan Modded with Encrypted Activation Key
+// @version      1.2.1
+// @description  Automatiza y modifica interacciones en Khan Academy con clave de activación encriptada
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
 // ==/UserScript==
 
+// Clave de activación encriptada (base64 de "RSkhanmod")
+const ENCODED_KEY = "UlNraGFubW9k";
+
 let loadedPlugins = [];
+let isActivated = false;
 
 console.clear();
 const noop = () => {};
@@ -52,6 +56,20 @@ let config = {
   videoBypassEnabled: true
 };
 
+// Función de activación
+function activateScript() {
+  const key = window.prompt("Ingresa la clave de activación para Khan Modded:");
+  if (key === atob(ENCODED_KEY)) {
+    isActivated = true;
+    sendToast("✅ Clave correcta. Script activado.", 3000);
+    return true;
+  } else {
+    alert("Clave incorrecta. El script no se activará.");
+    sendToast("❌ Clave incorrecta.", 3000);
+    return false;
+  }
+}
+
 // Panel flotante
 function createFloatingPanel() {
   const panel = document.createElement('div');
@@ -73,12 +91,13 @@ function createFloatingPanel() {
 
   panel.innerHTML = `
     <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+    <p style="margin: 0 0 10px 0;">Estado: ${isActivated ? 'Activado' : 'Desactivado'}</p>
     <label>
       Intervalo de clics (ms):
-      <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
+      <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;" ${!isActivated ? 'disabled' : ''}>
     </label>
     <label>
-      <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
+      <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''} ${!isActivated ? 'disabled' : ''}> Bypass de videos
     </label>
     <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
   `;
@@ -87,13 +106,17 @@ function createFloatingPanel() {
 
   // Eventos
   document.getElementById('clickInterval').addEventListener('change', (e) => {
-    config.clickInterval = parseInt(e.target.value);
-    sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+    if (isActivated) {
+      config.clickInterval = parseInt(e.target.value);
+      sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+    }
   });
 
   document.getElementById('videoBypass').addEventListener('change', (e) => {
-    config.videoBypassEnabled = e.target.checked;
-    sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+    if (isActivated) {
+      config.videoBypassEnabled = e.target.checked;
+      sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+    }
   });
 
   document.getElementById('togglePanel').addEventListener('click', () => {
@@ -149,6 +172,7 @@ async function loadCss(url) {
 }
 
 function setupMain() {
+  if (!isActivated) return;
 
   const originalFetch = window.fetch;
 
@@ -253,6 +277,8 @@ function setupMain() {
 if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://pt.khanacademy.org/";
 } else {
   (async function init() {
+    if (!activateScript()) return; // Si no se activa, salir
+
     await showSplashScreen();
 
     await Promise.all([
