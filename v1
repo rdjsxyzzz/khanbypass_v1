@@ -363,7 +363,7 @@ async function startAutoResolver() {
       sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
       await delay(2000); // Esperar a que cargue la página
       // Hacer clic en el botón "Vamos"
-      const vamosButton = document.querySelector('button[data-testid="exercise-start-button"], button:contains("Vamos"), a:contains("Vamos")'); // Ajustar selector según sea necesario
+      const vamosButton = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Vamos'));
       if (vamosButton) {
         vamosButton.click();
         sendToast("Auto Resolver: Clic en 'Vamos' realizado.", 2000);
