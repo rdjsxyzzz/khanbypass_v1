@@ -364,7 +364,7 @@ async function startAutoResolver() {
         sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
         await delay(2000); // Esperar a que cargue la página
         // Buscar botón "Vamos" visible y clickeable
-        const vamosButton = Array.from(document.querySelectorAll('button, a'))
+        const vamosButton = Array.from(document.querySelectorAll('button'))
           .find(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
         if (vamosButton) {
           vamosButton.click();
