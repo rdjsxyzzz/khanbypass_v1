@@ -341,51 +341,57 @@ function setupMain() {
   })();
 }
 
-// Auto Resolver: Prioriza tareas incompletas y luego unidades incompletas, reiniciando al finalizar
+// Auto Resolver: Prioriza tareas incompletas y luego unidades incompletas, sin reinicio automático
 async function startAutoResolver() {
   if (!isActivated || !autoResolverEnabled) return;
 
-  while (autoResolverEnabled && isActivated) {
-    // Priorizar tareas incompletas
-    // Selector actualizado para detectar tareas incompletas en la tabla "Mis tareas"
-    let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
-      .filter(row => {
-        const statusCell = row.querySelector('td:nth-child(3)');
-        return statusCell && !statusCell.textContent.toLowerCase().includes('completado');
-      })
-      .map(row => row.querySelector('td:nth-child(1) a'))
-      .filter(a => a !== null);
+  // Priorizar tareas incompletas
+  // Selector actualizado para detectar tareas incompletas en la tabla "Mis tareas"
+  let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
+    .filter(row => {
+      const statusCell = row.querySelector('td:nth-child(3)');
+      return statusCell && !statusCell.textContent.toLowerCase().includes('completado');
+    })
+    .map(row => row.querySelector('td:nth-child(1) a'))
+    .filter(a => a !== null);
 
-    console.log(`Auto Resolver: Tareas incompletas detectadas: ${incompleteTasks.length}`);
+  console.log(`Auto Resolver: Tareas incompletas detectadas: ${incompleteTasks.length}`);
 
-    if (incompleteTasks.length > 0) {
-      for (const task of incompleteTasks) {
-        task.click();
-        sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
+  if (incompleteTasks.length > 0) {
+    for (const task of incompleteTasks) {
+      task.click();
+      sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
+      await delay(2000); // Esperar a que cargue la página
+      // Hacer clic en el botón "Vamos"
+      const vamosButton = document.querySelector('button[data-testid="exercise-start-button"], button:contains("Vamos"), a:contains("Vamos")'); // Ajustar selector según sea necesario
+      if (vamosButton) {
+        vamosButton.click();
+        sendToast("Auto Resolver: Clic en 'Vamos' realizado.", 2000);
+      } else {
+        sendToast("Auto Resolver: No se encontró el botón 'Vamos'.", 2000);
+      }
+      await delay(config.clickInterval + 2000);
+    }
+  } else {
+    // Si no hay tareas incompletas, buscar unidades incompletas
+    // Selector actualizado para detectar unidades incompletas en "Cursos de la clase"
+    let incompleteUnits = Array.from(document.querySelectorAll('div[class*="classroom-courses"] a'))
+      .filter(a => {
+        const progressText = a.querySelector('span');
+        return progressText && !progressText.textContent.toLowerCase().includes('dominado');
+      });
+
+    console.log(`Auto Resolver: Unidades incompletas detectadas: ${incompleteUnits.length}`);
+
+    if (incompleteUnits.length > 0) {
+      for (const unit of incompleteUnits) {
+        unit.click();
+        sendToast("Auto Resolver: Abriendo unidad incompleta...", 2000);
         await delay(config.clickInterval + 2000);
       }
     } else {
-      // Si no hay tareas incompletas, buscar unidades incompletas
-      // Selector actualizado para detectar unidades incompletas en "Cursos de la clase"
-      let incompleteUnits = Array.from(document.querySelectorAll('div[class*="classroom-courses"] a'))
-        .filter(a => {
-          const progressText = a.querySelector('span');
-          return progressText && !progressText.textContent.toLowerCase().includes('dominado');
-        });
-
-      console.log(`Auto Resolver: Unidades incompletas detectadas: ${incompleteUnits.length}`);
-
-      if (incompleteUnits.length > 0) {
-        for (const unit of incompleteUnits) {
-          unit.click();
-          sendToast("Auto Resolver: Abriendo unidad incompleta...", 2000);
-          await delay(config.clickInterval + 2000);
-        }
-      } else {
-        // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
-        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
-        await delay(30000);
-      }
+      // Si no hay tareas ni unidades incompletas, mostrar mensaje
+      sendToast("Auto Resolver: No quedan tareas ni unidades incompletas.", 3000);
     }
   }
 }
