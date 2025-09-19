@@ -346,12 +346,6 @@ async function startAutoResolver() {
   if (!isActivated || !autoResolverEnabled) return;
 
   while (autoResolverEnabled && isActivated) {
-    // Verificar si ya está en una tarea para no abrir otra
-    const inTask = !!document.querySelector('span._1xj9bvi9');
-    if (inTask) {
-      await delay(config.clickInterval);
-      continue;
-    }
     // Priorizar tareas incompletas
     // Selector actualizado para detectar tareas incompletas en la tabla "Mis tareas"
     let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
@@ -366,6 +360,11 @@ async function startAutoResolver() {
 
     if (incompleteTasks.length > 0) {
       for (const task of incompleteTasks) {
+        // Verificar si la tarea ya está completada antes de abrir
+        const statusCell = task.closest('tr').querySelector('td:nth-child(3)');
+        if (statusCell && statusCell.textContent.toLowerCase().includes('completado')) {
+          continue; // Saltar tarea completada
+        }
         task.click();
         sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
         await delay(2000); // Esperar a que cargue la página
