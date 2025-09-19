@@ -347,7 +347,7 @@ async function startAutoResolver() {
 
   while (autoResolverEnabled && isActivated) {
     // Verificar si ya está en una tarea para no abrir otra
-    const inTask = !!document.querySelector('[data-testid="exercise-check-answer"], [data-testid="exercise-next-question"]');
+    const inTask = !!document.querySelector('span._1xj9bvi9');
     if (inTask) {
       await delay(config.clickInterval);
       continue;
