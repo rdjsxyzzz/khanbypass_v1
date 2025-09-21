@@ -7,11 +7,13 @@
 // @grant        none
 // ==/UserScript==
 
+// Clave de activación encriptada (base64 de "RSkhanmod")
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let loadedPlugins = [];
 let isActivated = false;
 let autoResolverEnabled = false;
+let autoVamosEnabled = false; // Nueva variable para controlar auto-click del botón "Vamos"
 
 console.clear();
 const noop = () => {};
@@ -99,6 +101,9 @@ function createFloatingPanel() {
         <label>
           <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto Resolver Tareas/Unidades
         </label>
+        <label>
+          <input type="checkbox" id="autoVamos" ${autoVamosEnabled ? 'checked' : ''}> Auto Click "Vamos"
+        </label>
         <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
           <strong>Estadísticas:</strong><br>
           Ejercicios: ${stats.exercisesCompleted}<br>
@@ -121,6 +126,7 @@ function createFloatingPanel() {
       const clickIntervalInput = panel.querySelector('#clickInterval');
       const videoBypassCheckbox = panel.querySelector('#videoBypass');
       const autoResolverCheckbox = panel.querySelector('#autoResolver');
+      const autoVamosCheckbox = panel.querySelector('#autoVamos'); // Nuevo checkbox
       const deactivateBtn = panel.querySelector('#deactivateBtn');
       const togglePanelBtn = panel.querySelector('#togglePanel');
 
@@ -148,11 +154,23 @@ function createFloatingPanel() {
         });
       }
 
+      // Nuevo event handler para auto-vamos
+      if (autoVamosCheckbox) {
+        autoVamosCheckbox.addEventListener('change', (e) => {
+          autoVamosEnabled = e.target.checked;
+          sendToast(`Auto Click "Vamos": ${autoVamosEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+          if (autoVamosEnabled) {
+            startAutoVamos();
+          }
+        });
+      }
+
       if (deactivateBtn) {
         deactivateBtn.addEventListener('click', () => {
           isActivated = false;
           window.khanwareDominates = false;
           autoResolverEnabled = false;
+          autoVamosEnabled = false; // Desactivar también auto-vamos
           stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
           sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
           updatePanel();
@@ -232,6 +250,26 @@ async function loadCss(url) {
     link.onload = resolve;
     document.head.appendChild(link);
   });
+}
+
+// Nueva función para auto-click del botón "Vamos"
+async function startAutoVamos() {
+  if (!isActivated || !autoVamosEnabled) return;
+
+  while (autoVamosEnabled && isActivated) {
+    // Buscar botón "Vamos" visible y clickeable
+    const vamosButton = Array.from(document.querySelectorAll('button'))
+      .find(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
+    
+    if (vamosButton) {
+      vamosButton.click();
+      sendToast("🤖｜Auto Click 'Vamos' realizado!", 2000);
+      await delay(1000); // Pequeña pausa después del click
+    } else {
+      // Si no encuentra el botón, esperar un poco más antes de volver a intentar
+      await delay(3000);
+    }
+  }
 }
 
 function setupMain() {
@@ -391,29 +429,15 @@ async function startAutoResolver() {
           await delay(config.clickInterval + 2000);
         }
       } else {
-        // Si no hay tareas ni unidades incompletas, buscar metas de dominio incompletas (pantalla de metas de aprendizaje)
-        const domainGoals = Array.from(document.querySelectorAll('ul > li > div > a[aria-disabled="false"]'))
-          .filter(goal => {
-            const text = goal.textContent.toLowerCase();
-            return !text.includes('dominado') && !text.includes('completado');
-          });
-
-        if (domainGoals.length > 0) {
-          domainGoals[0].click();
-          sendToast("Auto Resolver: Abriendo meta de dominio incompleta...", 2000);
-          await delay(config.clickInterval + 2000);
-          return; // Salir para esperar que se complete la meta actual
-        }
-
-        // Si no hay tareas, unidades ni metas incompletas, esperar y reintentar sin recargar
-        sendToast("Auto Resolver: No quedan tareas, unidades ni metas incompletas. Reintentando en 30s...", 3000);
+        // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
+        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
         await delay(30000);
       }
     }
   }
 }
 
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://es.khanacademy.org/";
+if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://pt.khanacademy.org/";
 } else {
   (async function init() {
     await showSplashScreen();
@@ -432,3 +456,12 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     console.clear();
   })();
 }
+Cambios Implementados:
+✅ 1. Nueva Variable de Estado
+
+let autoVamosEnabled = false; // Controla el auto-click del botón "Vamos"
+✅ 2. Checkbox en el Panel
+
+<label>
+  <input type="checkbox" id="autoVamos" ${autoVamosEnabled ? 'checked' : ''}> Auto Click "Vamos"
+</label>
