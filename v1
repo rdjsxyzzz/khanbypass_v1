@@ -149,16 +149,6 @@ function createFloatingPanel() {
         });
       }
 
-      if (autoVamosCheckbox) {
-        autoVamosCheckbox.addEventListener('change', (e) => {
-          autoVamosEnabled = e.target.checked;
-          sendToast(`Auto Click Vamos: ${autoVamosEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-          if (autoVamosEnabled) {
-            startAutoVamos();
-          }
-        });
-      }
-
       if (deactivateBtn) {
         deactivateBtn.addEventListener('click', () => {
           isActivated = false;
@@ -407,6 +397,33 @@ async function startAutoResolver() {
         await delay(30000);
       }
     }
+  }
+}
+
+// Auto Click Vamos: Función independiente para hacer click automáticamente en el botón "vamos"
+async function startAutoVamos() {
+  if (!isActivated || !autoVamosEnabled) return;
+
+  while (autoVamosEnabled && isActivated) {
+    // Buscar botón "Vamos" visible y clickeable
+    const vamosButton = Array.from(document.querySelectorAll('button'))
+      .find(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
+
+    if (vamosButton) {
+      vamosButton.click();
+      sendToast("✅ Auto Click Vamos: Clic realizado.", 2000);
+    }
+
+    // Buscar también en otros elementos que puedan contener "vamos"
+    const vamosElements = Array.from(document.querySelectorAll('*'))
+      .filter(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
+
+    if (vamosElements.length > 0 && !vamosButton) {
+      vamosElements[0].click();
+      sendToast("✅ Auto Click Vamos: Clic en elemento alternativo realizado.", 2000);
+    }
+
+    await delay(3000); // Esperar 3 segundos entre cada búsqueda
   }
 }
 
