@@ -7,7 +7,6 @@
 // @grant        none
 // ==/UserScript==
 
-// Clave de activación encriptada (base64 de "RSkhanmod")
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let loadedPlugins = [];
