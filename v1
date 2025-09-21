@@ -13,7 +13,6 @@ const ENCODED_KEY = "UlNraGFubW9k";
 let loadedPlugins = [];
 let isActivated = false;
 let autoResolverEnabled = false;
-let autoVamosEnabled = false;
 
 console.clear();
 const noop = () => {};
@@ -100,6 +99,9 @@ function createFloatingPanel() {
         </label>
         <label>
           <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto Resolver Tareas/Unidades
+        </label>
+        <label>
+          <input type="checkbox" id="autoVamos" ${autoVamosEnabled ? 'checked' : ''}> Auto Click Vamos
         </label>
         <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
           <strong>Estadísticas:</strong><br>
