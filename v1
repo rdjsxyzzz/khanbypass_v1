@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Khan Modded with Panel and Auto Resolver Improved v2 + Auto Vamos
-// @version      1.5.2
-// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante, auto resolver mejorado y auto click vamos independiente
+// @name         Khan Modded with Panel and Auto Resolver Improved v2
+// @version      1.5.1
+// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver mejorado
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
@@ -13,7 +13,6 @@ const ENCODED_KEY = "UlNraGFubW9k";
 let loadedPlugins = [];
 let isActivated = false;
 let autoResolverEnabled = false;
-let autoVamosEnabled = false;
 
 console.clear();
 const noop = () => {};
@@ -126,7 +125,6 @@ function createFloatingPanel() {
       const clickIntervalInput = panel.querySelector('#clickInterval');
       const videoBypassCheckbox = panel.querySelector('#videoBypass');
       const autoResolverCheckbox = panel.querySelector('#autoResolver');
-      const autoVamosCheckbox = panel.querySelector('#autoVamos');
       const deactivateBtn = panel.querySelector('#deactivateBtn');
       const togglePanelBtn = panel.querySelector('#togglePanel');
 
@@ -154,22 +152,11 @@ function createFloatingPanel() {
         });
       }
 
-      if (autoVamosCheckbox) {
-        autoVamosCheckbox.addEventListener('change', (e) => {
-          autoVamosEnabled = e.target.checked;
-          sendToast(`Auto Click Vamos: ${autoVamosEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-          if (autoVamosEnabled) {
-            startAutoVamos();
-          }
-        });
-      }
-
       if (deactivateBtn) {
         deactivateBtn.addEventListener('click', () => {
           isActivated = false;
           window.khanwareDominates = false;
           autoResolverEnabled = false;
-          autoVamosEnabled = false;
           stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
           sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
           updatePanel();
@@ -378,6 +365,16 @@ async function startAutoResolver() {
       for (const task of incompleteTasks) {
         task.click();
         sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
+        await delay(2000); // Esperar a que cargue la página
+        // Buscar botón "Vamos" visible y clickeable
+        const vamosButton = Array.from(document.querySelectorAll('button'))
+          .find(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
+        if (vamosButton) {
+          vamosButton.click();
+          sendToast("Auto Resolver: Clic en 'Vamos' realizado.", 2000);
+        } else {
+          sendToast("Auto Resolver: No se encontró el botón 'Vamos'.", 2000);
+        }
         await delay(config.clickInterval + 2000);
       }
     } else {
@@ -406,35 +403,7 @@ async function startAutoResolver() {
   }
 }
 
-// Auto Click Vamos: Función independiente para hacer click automáticamente en el botón "vamos"
-async function startAutoVamos() {
-  if (!isActivated || !autoVamosEnabled) return;
-
-  while (autoVamosEnabled && isActivated) {
-    // Buscar botón "Vamos" visible y clickeable
-    const vamosButton = Array.from(document.querySelectorAll('button'))
-      .find(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
-
-    if (vamosButton) {
-      vamosButton.click();
-      sendToast("✅ Auto Click Vamos: Clic realizado.", 2000);
-    } else {
-      // Buscar también en otros elementos que puedan contener "vamos"
-      const vamosElements = Array.from(document.querySelectorAll('*'))
-        .filter(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
-
-      if (vamosElements.length > 0) {
-        vamosElements[0].click();
-        sendToast("✅ Auto Click Vamos: Clic en elemento alternativo realizado.", 2000);
-      }
-    }
-
-    await delay(3000); // Esperar 3 segundos entre cada búsqueda
-  }
-}
-
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
-  window.location.href = "https://pt.khanacademy.org/";
+if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://pt.khanacademy.org/";
 } else {
   (async function init() {
     await showSplashScreen();
