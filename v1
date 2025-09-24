@@ -55,7 +55,9 @@ new MutationObserver(mutationsList =>
 // Configuración global
 let config = {
   clickInterval: 25000, // ms
-  videoBypassEnabled: true
+  videoBypassEnabled: true,
+  timeMultiplierEnabled: false,
+  timeMultiplier: 2 // Multiplicador por defecto (2x)
 };
 
 // Contadores
