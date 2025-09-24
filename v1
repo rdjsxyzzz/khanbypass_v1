@@ -127,8 +127,6 @@ function createFloatingPanel() {
       const videoBypassCheckbox = panel.querySelector('#videoBypass');
       const autoResolverCheckbox = panel.querySelector('#autoResolver');
       const autoVamosCheckbox = panel.querySelector('#autoVamos');
-      const timeMultiplierCheckbox = panel.querySelector('#timeMultiplier');
-      const timeMultiplierInput = panel.querySelector('#timeMultiplierInput');
       const deactivateBtn = panel.querySelector('#deactivateBtn');
       const togglePanelBtn = panel.querySelector('#togglePanel');
 
@@ -163,6 +161,20 @@ function createFloatingPanel() {
           if (autoVamosEnabled) {
             startAutoVamos();
           }
+        });
+      }
+
+      if (timeMultiplierCheckbox) {
+        timeMultiplierCheckbox.addEventListener('change', (e) => {
+          config.timeMultiplierEnabled = e.target.checked;
+          sendToast(`Multiplicador de Tiempo: ${config.timeMultiplierEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+        });
+      }
+
+      if (timeMultiplierInput) {
+        timeMultiplierInput.addEventListener('change', (e) => {
+          config.timeMultiplier = parseFloat(e.target.value);
+          sendToast(`Multiplicador actualizado: ${config.timeMultiplier}x`, 2000);
         });
       }
 
