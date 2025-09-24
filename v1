@@ -164,20 +164,6 @@ function createFloatingPanel() {
         });
       }
 
-      if (timeMultiplierCheckbox) {
-        timeMultiplierCheckbox.addEventListener('change', (e) => {
-          config.timeMultiplierEnabled = e.target.checked;
-          sendToast(`Multiplicador de Tiempo: ${config.timeMultiplierEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-        });
-      }
-
-      if (timeMultiplierInput) {
-        timeMultiplierInput.addEventListener('change', (e) => {
-          config.timeMultiplier = parseFloat(e.target.value);
-          sendToast(`Multiplicador actualizado: ${config.timeMultiplier}x`, 2000);
-        });
-      }
-
       if (deactivateBtn) {
         deactivateBtn.addEventListener('click', () => {
           isActivated = false;
@@ -285,8 +271,18 @@ function setupMain() {
         let bodyObj = JSON.parse(body);
         if (bodyObj.variables?.input) {
           const durationSeconds = bodyObj.variables.input.durationSeconds;
-          bodyObj.variables.input.secondsWatched = durationSeconds;
-          bodyObj.variables.input.lastSecondWatched = durationSeconds;
+
+          // Aplicar multiplicador de tiempo si está activado
+          if (config.timeMultiplierEnabled && config.timeMultiplier > 1) {
+            const multipliedSeconds = Math.floor(durationSeconds * config.timeMultiplier);
+            bodyObj.variables.input.secondsWatched = multipliedSeconds;
+            bodyObj.variables.input.lastSecondWatched = multipliedSeconds;
+            sendToast(`⏰ Multiplicador aplicado: ${config.timeMultiplier}x (${multipliedSeconds}s)`, 2000);
+          } else {
+            bodyObj.variables.input.secondsWatched = durationSeconds;
+            bodyObj.variables.input.lastSecondWatched = durationSeconds;
+          }
+
           body = JSON.stringify(bodyObj);
 
           if (input instanceof Request) {
