@@ -15,7 +15,7 @@ const ENCODED_KEY = "UlNraGFubW9k";
  * Cambia la fecha a la deseada (YYYY, MM-1, DD)
  */
 let expirationConfig = {
-  enabled: true,
+  enabled: false,
   expirationDate: new Date(2025, 9, 1)
 };
 
