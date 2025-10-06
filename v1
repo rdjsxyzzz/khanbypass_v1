@@ -15,8 +15,8 @@ const ENCODED_KEY = "UlNraGFubW9k";
  * Cambia la fecha a la deseada (YYYY, MM-1, DD)
  */
 let expirationConfig = {
-  enabled: true,
-  expirationDate: new Date(2026, 9, 1) // 1 de octubre de 2025
+  enabled: false,
+  expirationDate: new Date(2026, 9, 1) // 1 de octubre de 2026
 };
 
 let loadedPlugins = [];
