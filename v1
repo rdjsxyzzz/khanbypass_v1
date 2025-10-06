@@ -15,6 +15,9 @@ let isActivated = false;
 let autoResolverEnabled = false;
 let autoVamosEnabled = false;
 
+// Expiración del script (YYYY, MM-1, DD)
+const EXPIRATION_DATE = new Date(2024, 11, 31); // 31 de diciembre de 2024
+
 console.clear();
 const noop = () => {};
 console.warn = console.error = window.debug = noop;
@@ -170,6 +173,7 @@ function createFloatingPanel() {
           window.khanwareDominates = false;
           autoResolverEnabled = false;
           autoVamosEnabled = false;
+          config.timeMultiplierEnabled = false;
           stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
           sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
           updatePanel();
@@ -271,18 +275,8 @@ function setupMain() {
         let bodyObj = JSON.parse(body);
         if (bodyObj.variables?.input) {
           const durationSeconds = bodyObj.variables.input.durationSeconds;
-
-          // Aplicar multiplicador de tiempo si está activado
-          if (config.timeMultiplierEnabled && config.timeMultiplier > 1) {
-            const multipliedSeconds = Math.floor(durationSeconds * config.timeMultiplier);
-            bodyObj.variables.input.secondsWatched = multipliedSeconds;
-            bodyObj.variables.input.lastSecondWatched = multipliedSeconds;
-            sendToast(`⏰ Multiplicador aplicado: ${config.timeMultiplier}x (${multipliedSeconds}s)`, 2000);
-          } else {
-            bodyObj.variables.input.secondsWatched = durationSeconds;
-            bodyObj.variables.input.lastSecondWatched = durationSeconds;
-          }
-
+          bodyObj.variables.input.secondsWatched = durationSeconds;
+          bodyObj.variables.input.lastSecondWatched = durationSeconds;
           body = JSON.stringify(bodyObj);
 
           if (input instanceof Request) {
