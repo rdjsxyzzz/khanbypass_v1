@@ -25,8 +25,8 @@ let autoResolverEnabled = false;
 let autoVamosEnabled = false;
 
 console.clear();
-const noop = () => {};
-console.warn = console.error = window.debug = noop;
+// const noop = () => {};
+// console.warn = console.error = window.debug = noop;
 
 const splashScreen = document.createElement('splashScreen');
 
