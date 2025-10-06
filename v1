@@ -7,11 +7,16 @@
 // @grant        none
 // ==/UserScript==
 
+// Clave de activación encriptada (base64 de "RSkhanmod")
 const ENCODED_KEY = "UlNraGFubW9k";
 
+/**
+ * Configuración de expiración del script
+ * Cambia la fecha a la deseada (YYYY, MM-1, DD)
+ */
 let expirationConfig = {
   enabled: true,
-  expirationDate: new Date(2025, 10, 8)
+  expirationDate: new Date(2025, 9, 8) // 8 de octubre de 2025
 };
 
 let loadedPlugins = [];
