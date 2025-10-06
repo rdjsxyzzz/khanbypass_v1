@@ -453,9 +453,9 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     const now = new Date();
     console.log("Fecha actual:", now);
     console.log("Fecha de expiración:", expirationConfig.expirationDate);
-    console.log("¿Ha expirado?", now > expirationConfig.expirationDate);
+    console.log("¿Ha expirado?", now.getTime() > expirationConfig.expirationDate.getTime());
 
-    if (now > expirationConfig.expirationDate) {
+    if (now.getTime() > expirationConfig.expirationDate.getTime()) {
       alert("El script Khan Modded ha expirado. Por favor, actualice a una versión más reciente.");
       console.log("Script expirado - deteniendo ejecución");
       return; // Detener completamente la ejecución del script
