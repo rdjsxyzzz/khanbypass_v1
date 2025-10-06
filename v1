@@ -448,6 +448,15 @@ async function startAutoVamos() {
 if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
   window.location.href = "https://pt.khanacademy.org/";
 } else {
+  // Verificar expiración configurable ANTES de cualquier ejecución
+  if (expirationConfig.enabled) {
+    const now = new Date();
+    if (now > expirationConfig.expirationDate) {
+      alert("El script Khan Modded ha expirado. Por favor, actualice a una versión más reciente.");
+      return; // Detener completamente la ejecución del script
+    }
+  }
+
   (async function init() {
     await showSplashScreen();
 
