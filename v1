@@ -15,8 +15,8 @@ const ENCODED_KEY = "UlNraGFubW9k";
  * Cambia la fecha a la deseada (YYYY, MM-1, DD)
  */
 let expirationConfig = {
-  enabled: false,
-  expirationDate: new Date(2025, 9, 1)
+  enabled: true,
+  expirationDate: new Date(2026, 9, 1) // 1 de octubre de 2024 (fecha pasada)
 };
 
 let loadedPlugins = [];
@@ -201,11 +201,14 @@ function createFloatingPanel() {
       if (activateBtn && keyInput) {
         activateBtn.addEventListener('click', () => {
           const key = keyInput.value;
-          if (key === atob(ENCODED_KEY)) {
+          const now = new Date();
+          if (key === atob(ENCODED_KEY) && (!expirationConfig.enabled || now.getTime() <= expirationConfig.expirationDate.getTime())) {
             isActivated = true;
             sendToast("✅ Clave correcta. Script activado.", 3000);
             updatePanel();
             setupMain(); // Activar el script después de la activación
+          } else if (expirationConfig.enabled && now.getTime() > expirationConfig.expirationDate.getTime()) {
+            sendToast("❌ La clave ha expirado. Por favor, actualice a una versión más reciente.", 3000);
           } else {
             sendToast("❌ Clave incorrecta.", 3000);
           }
@@ -458,7 +461,7 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     if (now.getTime() > expirationConfig.expirationDate.getTime()) {
       alert("El script Khan Modded ha expirado. Por favor, actualice a una versión más reciente.");
       console.log("Script expirado - deteniendo ejecución");
-      throw new Error("Script expirado - deteniendo ejecución");
+      return; // Detener completamente la ejecución del script
     }
   }
 
