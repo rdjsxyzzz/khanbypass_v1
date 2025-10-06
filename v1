@@ -1,32 +1,23 @@
 // ==UserScript==
-// @name         Khan Modded with Panel and Auto Resolver Improved v2 + Auto Vamos
-// @version      1.5.2
-// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante, auto resolver mejorado y auto click vamos independiente
+// @name         Khan Modded with Panel and Auto Resolver Improved v2
+// @version      1.5.1
+// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante y auto resolver mejorado
 // @author       rxdrzx_
 // @match        *://*.khanacademy.org/*
 // @grant        none
 // ==/UserScript==
 
+
 // Clave de activación encriptada (base64 de "RSkhanmod")
 const ENCODED_KEY = "UlNraGFubW9k";
-
-/**
- * Configuración de expiración del script
- * Cambia la fecha a la deseada (YYYY, MM-1, DD)
- */
-let expirationConfig = {
-  enabled: false,
-  expirationDate: new Date(2026, 9, 1) // 1 de octubre de 2024 (fecha pasada)
-};
 
 let loadedPlugins = [];
 let isActivated = false;
 let autoResolverEnabled = false;
-let autoVamosEnabled = false;
 
 console.clear();
-// const noop = () => {};
-// console.warn = console.error = window.debug = noop;
+const noop = () => {};
+console.warn = console.error = window.debug = noop;
 
 const splashScreen = document.createElement('splashScreen');
 
@@ -97,11 +88,9 @@ function createFloatingPanel() {
 
   function updatePanel() {
     if (isActivated) {
-      const expirationText = expirationConfig.enabled ? `Expira: ${expirationConfig.expirationDate.toLocaleDateString()}` : '';
       panel.innerHTML = `
         <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
         <p style="margin: 0 0 10px 0;">Estado: Activado</p>
-        <p style="margin: 0 0 10px 0; font-size: 10px; color: #ccc;">${expirationText}</p>
         <label>
           Intervalo de clics (ms):
           <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
@@ -111,9 +100,6 @@ function createFloatingPanel() {
         </label>
         <label>
           <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto Resolver Tareas/Unidades
-        </label>
-        <label>
-          <input type="checkbox" id="autoVamos" ${autoVamosEnabled ? 'checked' : ''}> Auto Click Vamos
         </label>
         <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
           <strong>Estadísticas:</strong><br>
@@ -137,7 +123,6 @@ function createFloatingPanel() {
       const clickIntervalInput = panel.querySelector('#clickInterval');
       const videoBypassCheckbox = panel.querySelector('#videoBypass');
       const autoResolverCheckbox = panel.querySelector('#autoResolver');
-      const autoVamosCheckbox = panel.querySelector('#autoVamos');
       const deactivateBtn = panel.querySelector('#deactivateBtn');
       const togglePanelBtn = panel.querySelector('#togglePanel');
 
@@ -165,23 +150,11 @@ function createFloatingPanel() {
         });
       }
 
-      if (autoVamosCheckbox) {
-        autoVamosCheckbox.addEventListener('change', (e) => {
-          autoVamosEnabled = e.target.checked;
-          sendToast(`Auto Click Vamos: ${autoVamosEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-          if (autoVamosEnabled) {
-            startAutoVamos();
-          }
-        });
-      }
-
       if (deactivateBtn) {
         deactivateBtn.addEventListener('click', () => {
           isActivated = false;
           window.khanwareDominates = false;
           autoResolverEnabled = false;
-          autoVamosEnabled = false;
-          config.timeMultiplierEnabled = false;
           stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
           sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
           updatePanel();
@@ -201,14 +174,11 @@ function createFloatingPanel() {
       if (activateBtn && keyInput) {
         activateBtn.addEventListener('click', () => {
           const key = keyInput.value;
-          const now = new Date();
-          if (key === atob(ENCODED_KEY) && (!expirationConfig.enabled || now.getTime() <= expirationConfig.expirationDate.getTime())) {
+          if (key === atob(ENCODED_KEY)) {
             isActivated = true;
             sendToast("✅ Clave correcta. Script activado.", 3000);
             updatePanel();
             setupMain(); // Activar el script después de la activación
-          } else if (expirationConfig.enabled && now.getTime() > expirationConfig.expirationDate.getTime()) {
-            sendToast("❌ La clave ha expirado. Por favor, actualice a una versión más reciente.", 3000);
           } else {
             sendToast("❌ Clave incorrecta.", 3000);
           }
@@ -421,50 +391,8 @@ async function startAutoResolver() {
   }
 }
 
-// Auto Click Vamos: Función independiente para hacer click automáticamente en el botón "vamos"
-async function startAutoVamos() {
-  if (!isActivated || !autoVamosEnabled) return;
-
-  while (autoVamosEnabled && isActivated) {
-    // Buscar botón "Vamos" visible y clickeable
-    const vamosButton = Array.from(document.querySelectorAll('button'))
-      .find(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
-
-    if (vamosButton) {
-      vamosButton.click();
-      sendToast("✅ Auto Click Vamos: Clic realizado.", 2000);
-    } else {
-      // Buscar también en otros elementos que puedan contener "vamos"
-      const vamosElements = Array.from(document.querySelectorAll('*'))
-        .filter(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
-
-      if (vamosElements.length > 0) {
-        vamosElements[0].click();
-        sendToast("✅ Auto Click Vamos: Clic en elemento alternativo realizado.", 2000);
-      }
-    }
-
-    await delay(3000); // Esperar 3 segundos entre cada búsqueda
-  }
-}
-
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
-  window.location.href = "https://pt.khanacademy.org/";
+if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) { window.location.href = "https://pt.khanacademy.org/";
 } else {
-  // Verificar expiración configurable ANTES de cualquier ejecución
-  if (expirationConfig.enabled) {
-    const now = new Date();
-    console.log("Fecha actual:", now);
-    console.log("Fecha de expiración:", expirationConfig.expirationDate);
-    console.log("¿Ha expirado?", now.getTime() > expirationConfig.expirationDate.getTime());
-
-    if (now.getTime() > expirationConfig.expirationDate.getTime()) {
-      alert("El script Khan Modded ha expirado. Por favor, actualice a una versión más reciente.");
-      console.log("Script expirado - deteniendo ejecución");
-      return; // Detener completamente la ejecución del script
-    }
-  }
-
   (async function init() {
     await showSplashScreen();
 
@@ -477,9 +405,7 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     await delay(2000);
     await hideSplashScreen();
 
-    isActivated = true;
     createFloatingPanel();
-    setupMain();
     sendToast("😴｜injected!");
     console.clear();
   })();
