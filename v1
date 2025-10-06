@@ -16,7 +16,7 @@ const ENCODED_KEY = "UlNraGFubW9k";
  */
 let expirationConfig = {
   enabled: false,
-  expirationDate: new Date(2026, 9, 1) // 1 de octubre de 2026
+  expirationDate: new Date(2026, 9, 1) // 1 de octubre de 2024 (fecha pasada)
 };
 
 let loadedPlugins = [];
@@ -477,9 +477,10 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     await delay(2000);
     await hideSplashScreen();
 
+    isActivated = true;
     createFloatingPanel();
+    setupMain();
     sendToast("😴｜injected!");
     console.clear();
   })();
 }
-
