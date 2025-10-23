@@ -20,7 +20,7 @@ let expirationConfig = {
 };
 
 let loadedPlugins = [];
-let isActivated = true;
+let isActivated = false;
 let autoResolverEnabled = false;
 let autoVamosEnabled = false;
 
