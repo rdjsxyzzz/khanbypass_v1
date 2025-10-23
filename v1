@@ -446,35 +446,38 @@ async function startAutoVamos() {
 if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
   window.location.href = "https://pt.khanacademy.org/";
 } else {
-  // Verificar expiración configurable ANTES de cualquier ejecución
-  if (expirationConfig.enabled) {
-    const now = new Date();
-    console.log("Fecha actual:", now);
-    console.log("Fecha de expiración:", expirationConfig.expirationDate);
-    console.log("¿Ha expirado?", now.getTime() > expirationConfig.expirationDate.getTime());
+  (function() {
+    // Verificar expiración configurable ANTES de cualquier ejecución
+    if (expirationConfig.enabled) {
+      const now = new Date();
+      console.log("Fecha actual:", now);
+      console.log("Fecha de expiración:", expirationConfig.expirationDate);
+      console.log("¿Ha expirado?", now.getTime() > expirationConfig.expirationDate.getTime());
 
-    if (now.getTime() > expirationConfig.expirationDate.getTime()) {
-      alert("El script Khan Modded ha expirado. Por favor, actualice a una versión más reciente.");
-      console.log("Script expirado - deteniendo ejecución");
-      return; // Detener completamente la ejecución del script
+      if (now.getTime() > expirationConfig.expirationDate.getTime()) {
+        alert("El script Khan Modded ha expirado. Por favor, actualice a una versión más reciente.");
+        console.log("Script expirado - deteniendo ejecución");
+        return; // Now valid inside function
+      }
     }
-  }
 
-  (async function init() {
-    await showSplashScreen();
+    // Proceed with init
+    (async function init() {
+      await showSplashScreen();
 
-    await Promise.all([
-      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(()=>{ DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
-      loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
-      loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
-    ]);
+      await Promise.all([
+        loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(()=>{ DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
+        loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
+        loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
+      ]);
 
-    await delay(2000);
-    await hideSplashScreen();
+      await delay(2000);
+      await hideSplashScreen();
 
-    createFloatingPanel();
-    setupMain();
-    sendToast("😴｜injected!");
-    console.clear();
+      createFloatingPanel();
+      setupMain();
+      sendToast("😴｜injected!");
+      console.clear();
+    })();
   })();
 }
