@@ -1,13 +1,3 @@
-// ==UserScript==
-// @name         Khan Modded with Panel and Auto Resolver Improved v2 + Auto Vamos
-// @version      1.5.2
-// @description  Automatiza y modifica interacciones en Khan Academy con panel flotante, auto resolver mejorado y auto click vamos independiente
-// @author       rxdrzx_
-// @match        *://*.khanacademy.org/*
-// @grant        none
-// ==/UserScript==
-
-// Clave de activación encriptada (base64 de "RSkhanmod")
 const ENCODED_KEY = "UlNraGFubW9k";
 
 /**
