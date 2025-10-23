@@ -28,7 +28,7 @@ console.clear();
 const noop = () => {};
 console.warn = console.error = window.debug = noop;
 
-const splashScreen = document.createElement('splashScreen');
+const splashScreen = document.createElement('div');
 
 class EventEmitter {
   constructor() { this.events = {}; }
@@ -181,7 +181,6 @@ function createFloatingPanel() {
           window.khanwareDominates = false;
           autoResolverEnabled = false;
           autoVamosEnabled = false;
-          config.timeMultiplierEnabled = false;
           stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
           sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
           updatePanel();
@@ -390,11 +389,9 @@ async function startAutoResolver() {
     console.log(`Auto Resolver: Tareas incompletas detectadas: ${incompleteTasks.length}`);
 
     if (incompleteTasks.length > 0) {
-      for (const task of incompleteTasks) {
-        task.click();
-        sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
-        await delay(config.clickInterval + 2000);
-      }
+      incompleteTasks[0].click();
+      sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
+      await delay(config.clickInterval + 2000);
     } else {
       // Si no hay tareas incompletas, buscar unidades incompletas
       // Selector actualizado para detectar unidades incompletas en "Cursos de la clase"
@@ -407,11 +404,9 @@ async function startAutoResolver() {
       console.log(`Auto Resolver: Unidades incompletas detectadas: ${incompleteUnits.length}`);
 
       if (incompleteUnits.length > 0) {
-        for (const unit of incompleteUnits) {
-          unit.click();
-          sendToast("Auto Resolver: Abriendo unidad incompleta...", 2000);
-          await delay(config.clickInterval + 2000);
-        }
+        incompleteUnits[0].click();
+        sendToast("Auto Resolver: Abriendo unidad incompleta...", 2000);
+        await delay(config.clickInterval + 2000);
       } else {
         // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
         sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
