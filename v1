@@ -69,16 +69,20 @@ function createFloatingPanel() {
     position: fixed;
     top: 10px;
     right: 10px;
-    width: 300px;
-    background: rgba(0, 0, 0, 0.8);
+    width: 200px;
+    background: rgba(0, 0, 0, 0.1);
     color: white;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 5px;
+    border-radius: 4px;
     z-index: 10000;
     font-family: Arial, sans-serif;
-    font-size: 12px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    font-size: 10px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    opacity: 0.3;
+    transition: opacity 0.3s;
   `;
+  panel.onmouseover = () => panel.style.opacity = '1';
+  panel.onmouseout = () => panel.style.opacity = '0.3';
 
   function updatePanel() {
     if (isActivated) {
