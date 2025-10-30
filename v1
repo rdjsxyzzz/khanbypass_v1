@@ -290,16 +290,14 @@ function setupMain() {
       if (body && typeof body === 'string') {
         let bodyObj = JSON.parse(body);
         if (bodyObj.variables && bodyObj.variables.input && (bodyObj.operationName === 'updateUserAssessmentItem' || bodyObj.operationName === 'attemptProblem' || body.includes('assessmentItem'))) {
-          if (currentCorrectAnswer) {
-            bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
-            body = JSON.stringify(bodyObj);
-            if (input instanceof Request) {
-              input = new Request(input, { body });
-            } else {
-              init.body = body;
-            }
-            sendToast("✅ Answer bypassed - always correct!", 1500);
+          bodyObj.variables.input.selectedChoice = "correct ✅";
+          body = JSON.stringify(bodyObj);
+          if (input instanceof Request) {
+            input = new Request(input, { body });
+          } else {
+            init.body = body;
           }
+          sendToast("✅ Answer bypassed - always correct!", 1500);
         }
       }
     } catch (e) {}
@@ -349,37 +347,6 @@ function setupMain() {
               if (currentCorrectAnswer) break;
             }
           }
-        }
-
-        // Patch all questions to show bypass options
-        if (itemData.question) {
-          itemData.answerArea = {
-            calculator: false,
-            chi2Table: false,
-            periodicTable: false,
-            tTable: false,
-            zTable: false
-          };
-
-          // Modify existing widgets to show bypass options
-          if (itemData.question.widgets) {
-            for (const [key, widget] of Object.entries(itemData.question.widgets)) {
-              if (widget.type === 'radio' || widget.type === 'multiple-choice') {
-                widget.options.choices = [
-                  { content: "correct ✅", correct: true },
-                  { content: "incorrect ❌", correct: false }
-                ];
-              }
-            }
-          }
-
-          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
-
-          return new Response(JSON.stringify(responseObj), {
-            status: originalResponse.status,
-            statusText: originalResponse.statusText,
-            headers: originalResponse.headers
-          });
         }
       }
     } catch (e) {}
