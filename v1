@@ -368,9 +368,12 @@ function setupMain() {
         if (itemData.question && itemData.question.widgets) {
           for (const [key, widget] of Object.entries(itemData.question.widgets)) {
             if (widget.type === 'radio' || widget.type === 'multiple-choice') {
+              console.log("Widget options choices:", widget.options.choices);
               for (const choice of widget.options.choices) {
+                console.log("Choice:", choice);
                 if (choice.correct) {
-                  currentCorrectAnswer = choice.value || choice.content;
+                  currentCorrectAnswer = choice.content || choice.value;
+                  console.log("Selected correct answer:", currentCorrectAnswer);
                   sendToast(`✅ Correct answer extracted: ${currentCorrectAnswer}`, 2000);
                   break;
                 }
