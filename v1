@@ -287,14 +287,12 @@ function setupMain() {
 
     // Modify submission to always send correct answer
     try {
-      if (body && typeof body === 'string' && body.trim().startsWith('{') && body.includes('"operationName"')) {
+      if (body && typeof body === 'string' && body.trim().startsWith('{')) {
         try {
           let bodyObj = JSON.parse(body);
           if (bodyObj && typeof bodyObj === 'object' && !Array.isArray(bodyObj)) {
-            if (bodyObj.operationName) {
-              console.log("OperationName: " + bodyObj.operationName);
-            }
             if (bodyObj.variables && bodyObj.variables.input && 'selectedChoice' in bodyObj.variables.input) {
+              console.log("OperationName: " + bodyObj.operationName);
               if (currentCorrectAnswer) {
                 console.log("Modifying selectedChoice to: " + currentCorrectAnswer);
                 bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
@@ -317,7 +315,7 @@ function setupMain() {
           console.log("Body is not valid JSON, skipping submission bypass");
         }
       } else {
-        console.log("Body is not GraphQL JSON or empty, skipping submission bypass");
+        console.log("Body is not JSON or empty, skipping submission bypass");
       }
     } catch (e) {
       console.log("Error in submission bypass: " + e.message);
