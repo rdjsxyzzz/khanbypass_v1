@@ -1,18 +1,13 @@
-
 const ENCODED_KEY = "UlNraGFubW9k";
 
-/**
- * Configuración de expiración del script
- * Cambia la fecha a la deseada (YYYY, MM-1, DD)
- */
 let expirationConfig = {
   enabled: false,
-  expirationDate: new Date(2025, 10, 17) // 17 de octubre de 2025
+  expirationDate: new Date(2025, 10, 17)
 };
 
 let loadedPlugins = [];
 let isActivated = false;
-let autoResolverEnabled = false;
+let autoInicioEnabled = false;
 let autoVamosEnabled = false;
 
 console.clear();
@@ -47,18 +42,15 @@ class EventEmitter {
 
 const plppdo = new EventEmitter();
 
-// Observer otimizado
 new MutationObserver(mutationsList =>
   mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
 ).observe(document.body, { childList: true, subtree: true });
 
-// Configuración global
 let config = {
-  clickInterval: 25000, // ms
+  clickInterval: 25000,
   videoBypassEnabled: true
 };
 
-// Contadores
 let stats = {
   exercisesCompleted: 0,
   videosWatched: 0,
@@ -67,8 +59,10 @@ let stats = {
 
 let startTime;
 
-// Panel flotante
 function createFloatingPanel() {
+  const existingPanel = document.getElementById('khanModPanel');
+  if (existingPanel) existingPanel.remove();
+
   const panel = document.createElement('div');
   panel.id = 'khanModPanel';
   panel.style.cssText = `
@@ -101,7 +95,7 @@ function createFloatingPanel() {
           <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
         </label>
         <label>
-          <input type="checkbox" id="autoResolver" ${autoResolverEnabled ? 'checked' : ''}> Auto Resolver Tareas/Unidades
+          <input type="checkbox" id="autoInicio" ${autoInicioEnabled ? 'checked' : ''}> Auto Click Início
         </label>
         <label>
           <input type="checkbox" id="autoVamos" ${autoVamosEnabled ? 'checked' : ''}> Auto Click Vamos
@@ -123,11 +117,10 @@ function createFloatingPanel() {
       `;
     }
 
-    // Eventos
     if (isActivated) {
       const clickIntervalInput = panel.querySelector('#clickInterval');
       const videoBypassCheckbox = panel.querySelector('#videoBypass');
-      const autoResolverCheckbox = panel.querySelector('#autoResolver');
+      const autoInicioCheckbox = panel.querySelector('#autoInicio');
       const autoVamosCheckbox = panel.querySelector('#autoVamos');
       const deactivateBtn = panel.querySelector('#deactivateBtn');
       const togglePanelBtn = panel.querySelector('#togglePanel');
@@ -146,12 +139,12 @@ function createFloatingPanel() {
         });
       }
 
-      if (autoResolverCheckbox) {
-        autoResolverCheckbox.addEventListener('change', (e) => {
-          autoResolverEnabled = e.target.checked;
-          sendToast(`Auto Resolver: ${autoResolverEnabled ? 'Activado' : 'Desactivado'}`, 2000);
-          if (autoResolverEnabled) {
-            startAutoResolver();
+      if (autoInicioCheckbox) {
+        autoInicioCheckbox.addEventListener('change', (e) => {
+          autoInicioEnabled = e.target.checked;
+          sendToast(`Auto Click Início: ${autoInicioEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+          if (autoInicioEnabled) {
+            startAutoInicio();
           }
         });
       }
@@ -170,7 +163,7 @@ function createFloatingPanel() {
         deactivateBtn.addEventListener('click', () => {
           isActivated = false;
           window.khanwareDominates = false;
-          autoResolverEnabled = false;
+          autoInicioEnabled = false;
           autoVamosEnabled = false;
           stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
           sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
@@ -196,7 +189,7 @@ function createFloatingPanel() {
             isActivated = true;
             sendToast("✅ Clave correcta. Script activado.", 3000);
             updatePanel();
-            setupMain(); // Activar el script después de la activación
+            setupMain();
           } else if (expirationConfig.enabled && now.getTime() > expirationConfig.expirationDate.getTime()) {
             sendToast("❌ La clave ha expirado. Por favor, actualice a una versión más reciente.", 3000);
           } else {
@@ -211,7 +204,6 @@ function createFloatingPanel() {
   document.body.appendChild(panel);
 }
 
-// Funciones helpers
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const findAndClickBySelector = selector => document.querySelector(selector)?.click();
 
@@ -362,13 +354,37 @@ function setupMain() {
   })();
 }
 
-// Auto Resolver: Prioriza tareas incompletas y luego unidades incompletas, reiniciando al finalizar
+// Auto Click Inicio: Función independiente para hacer click automáticamente en el botón "início"
+async function startAutoInicio() {
+  if (!isActivated || !autoInicioEnabled) return;
+
+  while (autoInicioEnabled && isActivated) {
+    // Buscar botón "Início" visible y clickeable
+    const inicioButton = Array.from(document.querySelectorAll('button'))
+      .find(el => el.textContent.trim().toLowerCase() === 'início' && !el.disabled && el.offsetParent !== null);
+
+    if (inicioButton) {
+      inicioButton.click();
+      sendToast("✅ Auto Click Início: Clic realizado.", 2000);
+    } else {
+      // Buscar también en otros elementos que puedan contener "início"
+      const inicioElements = Array.from(document.querySelectorAll('*'))
+        .filter(el => el.textContent.trim().toLowerCase() === 'início' && !el.disabled && el.offsetParent !== null);
+
+      if (inicioElements.length > 0) {
+        inicioElements[0].click();
+        sendToast("✅ Auto Click Início: Clic en elemento alternativo realizado.", 2000);
+      }
+    }
+
+    await delay(3000); // Esperar 3 segundos entre cada búsqueda
+  }
+}
+
 async function startAutoResolver() {
   if (!isActivated || !autoResolverEnabled) return;
 
   while (autoResolverEnabled && isActivated) {
-    // Priorizar tareas incompletas
-    // Selector actualizado para detectar tareas incompletas en la tabla "Mis tareas"
     let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
       .filter(row => {
         const statusCell = row.querySelector('td:nth-child(3)');
@@ -384,8 +400,6 @@ async function startAutoResolver() {
       sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
       await delay(config.clickInterval + 2000);
     } else {
-      // Si no hay tareas incompletas, buscar unidades incompletas
-      // Selector actualizado para detectar unidades incompletas en "Cursos de la clase"
       let incompleteUnits = Array.from(document.querySelectorAll('div[class*="classroom-courses"] a'))
         .filter(a => {
           const progressText = a.querySelector('span');
