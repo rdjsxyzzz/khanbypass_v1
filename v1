@@ -368,7 +368,38 @@ function setupMain() {
         let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
         console.log("Parsed itemData:", itemData);
 
-        // Find correct answer from original itemData
+        // Modify itemData to convert input questions to multiple-choice
+        if (itemData.question && itemData.question.widgets) {
+          for (const [key, widget] of Object.entries(itemData.question.widgets)) {
+            if (widget.type === 'numeric-input' || widget.type === 'expression') {
+              console.log("Converting widget", key, "from", widget.type, "to radio");
+              widget.type = 'radio';
+              let correctValue = null;
+              if (widget.options && widget.options.value) {
+                correctValue = widget.options.value;
+              } else if (widget.options && widget.options.answers) {
+                const correctAns = widget.options.answers.find(ans => ans.correct);
+                if (correctAns) correctValue = correctAns.value;
+              }
+              if (correctValue !== null) {
+                // Create multiple-choice options
+                widget.options.choices = [
+                  { content: correctValue, correct: true },
+                  { content: (parseFloat(correctValue) + 1).toString(), correct: false },
+                  { content: (parseFloat(correctValue) - 1).toString(), correct: false },
+                  { content: (parseFloat(correctValue) * 2).toString(), correct: false }
+                ];
+                // Remove old options
+                delete widget.options.value;
+                delete widget.options.answers;
+              }
+            }
+          }
+          // Re-stringify the modified itemData
+          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+        }
+
+        // Find correct answer from modified itemData
         currentCorrectAnswer = null;
         if (itemData.question && itemData.question.widgets) {
           console.log("Found question widgets:", Object.keys(itemData.question.widgets));
