@@ -47,7 +47,7 @@ new MutationObserver(mutationsList =>
 ).observe(document.body, { childList: true, subtree: true });
 
 let config = {
-  clickInterval: 45000,
+  clickInterval: 5000,
   videoBypassEnabled: true,
   autoClickEnabled: false
 };
@@ -289,7 +289,7 @@ function setupMain() {
     try {
       if (body && typeof body === 'string') {
         let bodyObj = JSON.parse(body);
-        if (bodyObj.variables && bodyObj.variables.input && (bodyObj.operationName === 'updateUserAssessmentItem' || body.includes('assessmentItem'))) {
+        if (bodyObj.variables && bodyObj.variables.input && (bodyObj.operationName === 'updateUserAssessmentItem' || bodyObj.operationName === 'attemptProblem' || body.includes('assessmentItem'))) {
           if (currentCorrectAnswer) {
             bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
             body = JSON.stringify(bodyObj);
@@ -387,27 +387,47 @@ function setupMain() {
   };
 
   if (config.autoClickEnabled) {
+    console.log("Auto click enabled, starting loop");
     (async () => {
-      const selectors = [
-        `[data-testid="choice-icon__library-choice-icon"]`,
-        `[data-testid="exercise-check-answer"]`,
-        `[data-testid="exercise-next-question"]`,
-        `._1udzurba`,
-        `._awve9b`
-      ];
-
       window.khanwareDominates = true;
 
       while (window.khanwareDominates && isActivated) {
-        for (const selector of selectors) {
-          findAndClickBySelector(selector);
+        console.log("Auto click loop running");
 
-          const element = document.querySelector(`${selector}> div`);
-          if (element?.innerText === "Mostrar resumo") {
-            stats.exercisesCompleted++;
-            sendToast("🎉｜Exercício concluído!", 3000);
+        // First, try to select the correct answer if available
+        const correctChoice = document.querySelector('[data-testid="choice-icon__library-choice-icon"]');
+        if (correctChoice) {
+          console.log("Selecting correct answer");
+          correctChoice.click();
+          await delay(500); // Wait a bit after selecting
+        }
+
+        // Then check the answer
+        const checkButton = document.querySelector('[data-testid="exercise-check-answer"]');
+        if (checkButton && !checkButton.disabled) {
+          console.log("Checking answer");
+          checkButton.click();
+          await delay(1000); // Wait for response
+        }
+
+        // Then go to next question
+        const nextButton = document.querySelector('[data-testid="exercise-next-question"]');
+        if (nextButton && !nextButton.disabled) {
+          console.log("Going to next question");
+          nextButton.click();
+
+          // Check if exercise is completed
+          await delay(500);
+          const summaryElement = document.querySelector('._1udzurba, ._awve9b');
+          if (summaryElement) {
+            const divElement = summaryElement.querySelector('div');
+            if (divElement?.innerText === "Mostrar resumo" || divElement?.innerText === "Mostrar resumen") {
+              stats.exercisesCompleted++;
+              sendToast("🎉｜Exercício concluído!", 3000);
+            }
           }
         }
+
         await delay(config.clickInterval);
       }
     })();
