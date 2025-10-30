@@ -350,6 +350,37 @@ function setupMain() {
             }
           }
         }
+
+        // Patch all questions to show bypass options
+        if (itemData.question) {
+          itemData.answerArea = {
+            calculator: false,
+            chi2Table: false,
+            periodicTable: false,
+            tTable: false,
+            zTable: false
+          };
+
+          // Modify existing widgets to show bypass options
+          if (itemData.question.widgets) {
+            for (const [key, widget] of Object.entries(itemData.question.widgets)) {
+              if (widget.type === 'radio' || widget.type === 'multiple-choice') {
+                widget.options.choices = [
+                  { content: "correct ✅", correct: true },
+                  { content: "incorrect ❌", correct: false }
+                ];
+              }
+            }
+          }
+
+          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+
+          return new Response(JSON.stringify(responseObj), {
+            status: originalResponse.status,
+            statusText: originalResponse.statusText,
+            headers: originalResponse.headers
+          });
+        }
       }
     } catch (e) {}
 
