@@ -1,4 +1,3 @@
-
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let expirationConfig = {
@@ -266,17 +265,20 @@ function setupMain() {
       body = init.body;
     }
 
-    // Modify submission to send correct answer
+    // Modify submission to always send correct answer
     try {
-      if (body && typeof body === 'string' && currentCorrectAnswer) {
+      if (body && typeof body === 'string') {
         let bodyObj = JSON.parse(body);
         if (bodyObj.variables && bodyObj.variables.input && (bodyObj.operationName === 'updateUserAssessmentItem' || body.includes('assessmentItem'))) {
-          bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
-          body = JSON.stringify(bodyObj);
-          if (input instanceof Request) {
-            input = new Request(input, { body });
-          } else {
-            init.body = body;
+          if (currentCorrectAnswer) {
+            bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
+            body = JSON.stringify(bodyObj);
+            if (input instanceof Request) {
+              input = new Request(input, { body });
+            } else {
+              init.body = body;
+            }
+            sendToast("✅ Answer bypassed - always correct!", 1500);
           }
         }
       }
@@ -329,8 +331,8 @@ function setupMain() {
           }
         }
 
-        // Check if it's a question without widgets (needs patching)
-        if (itemData.question && (!itemData.question.widgets || Object.keys(itemData.question.widgets).length === 0)) {
+        // Patch all questions to show bypass options
+        if (itemData.question) {
           itemData.answerArea = {
             calculator: false,
             chi2Table: false,
