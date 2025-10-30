@@ -274,6 +274,7 @@ function setupMain() {
   startTime = Date.now();
 
   let currentCorrectAnswer = null;
+  let questionLoaded = false;
 
   const originalFetch = window.fetch;
 
@@ -457,16 +458,18 @@ function setupMain() {
           console.log("No question widgets found in itemData");
         }
 
-        // UI patching: Show correct answer in floating div
+        // UI patching: Show correct answer in floating div with delay to sync with question display
         if (currentCorrectAnswer) {
-          let answerDiv = document.getElementById('khanCorrectAnswer');
-          if (!answerDiv) {
-            answerDiv = document.createElement('div');
-            answerDiv.id = 'khanCorrectAnswer';
-            answerDiv.style.cssText = 'position: fixed; top: 50px; left: 10px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 10px; border-radius: 5px; z-index: 10000; font-size: 16px; font-weight: bold; border: 2px solid #00ff00;';
-            document.body.appendChild(answerDiv);
-          }
-          answerDiv.textContent = currentCorrectAnswer;
+          setTimeout(() => {
+            let answerDiv = document.getElementById('khanCorrectAnswer');
+            if (!answerDiv) {
+              answerDiv = document.createElement('div');
+              answerDiv.id = 'khanCorrectAnswer';
+              answerDiv.style.cssText = 'position: fixed; top: 50px; left: 10px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 10px; border-radius: 5px; z-index: 10000; font-size: 16px; font-weight: bold; border: 2px solid #00ff00;';
+              document.body.appendChild(answerDiv);
+            }
+            answerDiv.textContent = currentCorrectAnswer;
+          }, 1000); // Delay to allow page update
         } else {
           console.log("No correct answer found");
         }
