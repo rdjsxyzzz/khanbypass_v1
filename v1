@@ -358,15 +358,22 @@ function setupMain() {
     try {
       const clonedResponse = originalResponse.clone();
       const responseBody = await clonedResponse.text();
+      console.log("Response body (first 500 chars):", responseBody.substring(0, 500));
+
       let responseObj = JSON.parse(responseBody);
+      console.log("Parsed response object keys:", Object.keys(responseObj));
 
       if (responseObj?.data?.assessmentItem?.item?.itemData) {
+        console.log("Found assessmentItem.item.itemData");
         let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+        console.log("Parsed itemData:", itemData);
 
         // Find correct answer from original itemData
         currentCorrectAnswer = null;
         if (itemData.question && itemData.question.widgets) {
+          console.log("Found question widgets:", Object.keys(itemData.question.widgets));
           for (const [key, widget] of Object.entries(itemData.question.widgets)) {
+            console.log("Processing widget:", key, "type:", widget.type);
             if (widget.type === 'radio' || widget.type === 'multiple-choice') {
               console.log("Widget options choices:", widget.options.choices);
               for (const choice of widget.options.choices) {
@@ -381,6 +388,8 @@ function setupMain() {
               if (currentCorrectAnswer) break;
             }
           }
+        } else {
+          console.log("No question widgets found in itemData");
         }
 
         // UI patching: Show correct answer in floating div
@@ -393,9 +402,15 @@ function setupMain() {
             document.body.appendChild(answerDiv);
           }
           answerDiv.textContent = 'Correct Answer: ' + currentCorrectAnswer;
+        } else {
+          console.log("No correct answer found");
         }
+      } else {
+        console.log("No assessmentItem.item.itemData found in response");
       }
-    } catch (e) {}
+    } catch (e) {
+      console.log("Error parsing response:", e.message);
+    }
 
     return originalResponse;
   };
