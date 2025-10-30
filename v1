@@ -369,8 +369,17 @@ function setupMain() {
           }
         }
 
-        // No UI patching - keep original question display
-        // Correct answer is extracted for submission bypass
+        // UI patching: Show correct answer in floating div
+        if (currentCorrectAnswer) {
+          let answerDiv = document.getElementById('khanCorrectAnswer');
+          if (!answerDiv) {
+            answerDiv = document.createElement('div');
+            answerDiv.id = 'khanCorrectAnswer';
+            answerDiv.style.cssText = 'position: fixed; top: 50px; left: 10px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 10px; border-radius: 5px; z-index: 10000; font-size: 16px; font-weight: bold; border: 2px solid #00ff00;';
+            document.body.appendChild(answerDiv);
+          }
+          answerDiv.textContent = 'Correct Answer: ' + currentCorrectAnswer;
+        }
       }
     } catch (e) {}
 
