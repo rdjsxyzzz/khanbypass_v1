@@ -285,6 +285,17 @@ function setupMain() {
       body = init.body;
     }
 
+    // Debug logging
+    console.log("Fetch body type:", typeof body, "instanceof FormData:", body instanceof FormData);
+    if (typeof body === 'string') {
+      console.log("Body content (first 200 chars):", body.substring(0, 200));
+    }
+
+    // Handle FormData by converting to JSON string
+    if (body instanceof FormData) {
+      body = JSON.stringify(Object.fromEntries(body.entries()));
+    }
+
     // Modify submission to always send correct answer
     try {
       if (body && typeof body === 'string' && body.trim().startsWith('{')) {
