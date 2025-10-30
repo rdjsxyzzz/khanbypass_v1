@@ -1,3 +1,4 @@
+
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let expirationConfig = {
@@ -253,6 +254,8 @@ function setupMain() {
 
   startTime = Date.now();
 
+  let currentCorrectAnswer = null;
+
   const originalFetch = window.fetch;
 
   window.fetch = async function(input, init) {
@@ -262,6 +265,22 @@ function setupMain() {
     } else if (init?.body) {
       body = init.body;
     }
+
+    // Modify submission to send correct answer
+    try {
+      if (body && typeof body === 'string' && currentCorrectAnswer) {
+        let bodyObj = JSON.parse(body);
+        if (bodyObj.variables && bodyObj.variables.input && (bodyObj.operationName === 'updateUserAssessmentItem' || body.includes('assessmentItem'))) {
+          bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
+          body = JSON.stringify(bodyObj);
+          if (input instanceof Request) {
+            input = new Request(input, { body });
+          } else {
+            init.body = body;
+          }
+        }
+      }
+    } catch (e) {}
 
     if (config.videoBypassEnabled && body?.includes('"operationName":"updateUserVideoProgress"')) {
       try {
@@ -293,6 +312,22 @@ function setupMain() {
 
       if (responseObj?.data?.assessmentItem?.item?.itemData) {
         let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+
+        // Find correct answer from original itemData
+        currentCorrectAnswer = null;
+        if (itemData.question && itemData.question.widgets) {
+          for (const [key, widget] of Object.entries(itemData.question.widgets)) {
+            if (widget.type === 'radio' || widget.type === 'multiple-choice') {
+              for (const choice of widget.options.choices) {
+                if (choice.correct) {
+                  currentCorrectAnswer = choice.value || choice.content;
+                  break;
+                }
+              }
+              if (currentCorrectAnswer) break;
+            }
+          }
+        }
 
         // Check if it's a question without widgets (needs patching)
         if (itemData.question && (!itemData.question.widgets || Object.keys(itemData.question.widgets).length === 0)) {
