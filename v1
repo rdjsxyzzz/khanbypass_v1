@@ -1,4 +1,3 @@
-
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let expirationConfig = {
@@ -295,7 +294,8 @@ function setupMain() {
       if (responseObj?.data?.assessmentItem?.item?.itemData) {
         let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
 
-        if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+        // Check if it's a question without widgets (needs patching)
+        if (itemData.question && (!itemData.question.widgets || Object.keys(itemData.question.widgets).length === 0)) {
           itemData.answerArea = {
             calculator: false,
             chi2Table: false,
@@ -359,23 +359,37 @@ function setupMain() {
 async function startAutoInicio() {
   if (!isActivated || !autoInicioEnabled) return;
 
+  const possibleTexts = ['início', 'iniciar', 'começar', 'inicio', 'iniciar', 'comecar'];
+
   while (autoInicioEnabled && isActivated) {
-    // Buscar botón "Início" visible y clickeable
-    const inicioButton = Array.from(document.querySelectorAll('button'))
-      .find(el => el.textContent.trim().toLowerCase() === 'início' && !el.disabled && el.offsetParent !== null);
+    let found = false;
 
-    if (inicioButton) {
-      inicioButton.click();
-      sendToast("✅ Auto Click Início: Clic realizado.", 2000);
-    } else {
-      // Buscar también en otros elementos que puedan contener "início"
-      const inicioElements = Array.from(document.querySelectorAll('*'))
-        .filter(el => el.textContent.trim().toLowerCase() === 'início' && !el.disabled && el.offsetParent !== null);
+    for (const text of possibleTexts) {
+      // Buscar botón visible y clickeable
+      const button = Array.from(document.querySelectorAll('button'))
+        .find(el => el.textContent.trim().toLowerCase() === text && !el.disabled && el.offsetParent !== null);
 
-      if (inicioElements.length > 0) {
-        inicioElements[0].click();
-        sendToast("✅ Auto Click Início: Clic en elemento alternativo realizado.", 2000);
+      if (button) {
+        button.click();
+        sendToast(`✅ Auto Click Início: Clic en "${text}" realizado.`, 2000);
+        found = true;
+        break;
       }
+
+      // Buscar también en otros elementos que puedan contener el texto
+      const elements = Array.from(document.querySelectorAll('*'))
+        .filter(el => el.textContent.trim().toLowerCase() === text && !el.disabled && el.offsetParent !== null);
+
+      if (elements.length > 0) {
+        elements[0].click();
+        sendToast(`✅ Auto Click Início: Clic en elemento alternativo "${text}" realizado.`, 2000);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      sendToast("⚠️ Auto Click Início: No se encontró ningún botón con texto coincidente.", 2000);
     }
 
     await delay(3000); // Esperar 3 segundos entre cada búsqueda
