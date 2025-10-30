@@ -287,28 +287,37 @@ function setupMain() {
 
     // Modify submission to always send correct answer
     try {
-      if (body && typeof body === 'string' && body.trim().startsWith('{')) {
-        let bodyObj = JSON.parse(body);
-        if (bodyObj.operationName) {
-          console.log("OperationName: " + bodyObj.operationName);
-        }
-        if (bodyObj.variables && bodyObj.variables.input && 'selectedChoice' in bodyObj.variables.input) {
-          if (currentCorrectAnswer) {
-            console.log("Modifying selectedChoice to: " + currentCorrectAnswer);
-            bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
-            body = JSON.stringify(bodyObj);
-            if (input instanceof Request) {
-              input = new Request(input, { body });
-            } else {
-              init.body = body;
+      if (body && typeof body === 'string' && body.trim().startsWith('{') && body.includes('"operationName"')) {
+        try {
+          let bodyObj = JSON.parse(body);
+          if (bodyObj && typeof bodyObj === 'object' && !Array.isArray(bodyObj)) {
+            if (bodyObj.operationName) {
+              console.log("OperationName: " + bodyObj.operationName);
             }
-            sendToast("✅ Answer bypassed - always correct!", 1500);
+            if (bodyObj.variables && bodyObj.variables.input && 'selectedChoice' in bodyObj.variables.input) {
+              if (currentCorrectAnswer) {
+                console.log("Modifying selectedChoice to: " + currentCorrectAnswer);
+                bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
+                body = JSON.stringify(bodyObj);
+                if (input instanceof Request) {
+                  input = new Request(input, { body });
+                } else {
+                  init.body = body;
+                }
+                sendToast("✅ Answer bypassed - always correct!", 1500);
+              } else {
+                console.log("No correct answer available for bypass");
+              }
+            }
           } else {
-            console.log("No correct answer available for bypass");
+            console.log("Parsed body is not a valid object, skipping submission bypass");
           }
+        } catch (jsonError) {
+          // Not valid JSON, skip
+          console.log("Body is not valid JSON, skipping submission bypass");
         }
       } else {
-        console.log("Body is not JSON or empty, skipping submission bypass");
+        console.log("Body is not GraphQL JSON or empty, skipping submission bypass");
       }
     } catch (e) {
       console.log("Error in submission bypass: " + e.message);
