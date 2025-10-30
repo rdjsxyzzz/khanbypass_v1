@@ -386,6 +386,23 @@ function setupMain() {
                 }
               }
               if (currentCorrectAnswer) break;
+            } else if (widget.type === 'numeric-input') {
+              console.log("Numeric input widget options:", JSON.stringify(widget.options));
+              if (widget.options && widget.options.value) {
+                currentCorrectAnswer = widget.options.value;
+                console.log("Selected correct answer from numeric-input:", currentCorrectAnswer);
+                sendToast(`✅ Correct answer extracted: ${currentCorrectAnswer}`, 2000);
+                break;
+              } else if (widget.options && widget.options.answers) {
+                console.log("Checking answers array:", widget.options.answers);
+                const correctAnswer = widget.options.answers.find(ans => ans.correct);
+                if (correctAnswer) {
+                  currentCorrectAnswer = correctAnswer.value;
+                  console.log("Selected correct answer from numeric-input answers:", currentCorrectAnswer);
+                  sendToast(`✅ Correct answer extracted: ${currentCorrectAnswer}`, 2000);
+                  break;
+                }
+              }
             }
           }
         } else {
