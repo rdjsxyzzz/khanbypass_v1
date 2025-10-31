@@ -1,8 +1,8 @@
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let expirationConfig = {
-  enabled: true,
-  expirationDate: new Date(2025, 11, 11)
+  enabled: false,
+  expirationDate: new Date(2025, 10, 17)
 };
 
 let loadedPlugins = [];
@@ -91,6 +91,7 @@ function createFloatingPanel() {
       panel.innerHTML = `
         <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
         <p style="margin: 0 0 10px 0;">Estado: Activado</p>
+        <p style="margin: 0 0 10px 0; font-size: 10px; color: #ccc;">Desarrollador: rxdrzx_ @tk @ig (joaquin p)</p>
         <p style="margin: 0 0 10px 0; font-size: 10px; color: #ccc;">${expirationText}</p>
         <label>
           Intervalo de clics (ms):
@@ -369,7 +370,7 @@ function setupMain() {
         let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
         console.log("Parsed itemData:", itemData);
 
-        // Modify itemData to convert input questions to multiple-choice with only 2 options (A and B)
+        // Modify itemData to convert input questions to multiple-choice
         if (itemData.question && itemData.question.widgets) {
           for (const [key, widget] of Object.entries(itemData.question.widgets)) {
             if (widget.type === 'numeric-input' || widget.type === 'expression') {
@@ -383,10 +384,12 @@ function setupMain() {
                 if (correctAns) correctValue = correctAns.value;
               }
               if (correctValue !== null) {
-                // Create multiple-choice options with only 2 choices: A (correct) and B (incorrect)
+                // Create multiple-choice options
                 widget.options.choices = [
                   { content: correctValue, correct: true },
-                  { content: (parseFloat(correctValue) + 1).toString(), correct: false }
+                  { content: (parseFloat(correctValue) + 1).toString(), correct: false },
+                  { content: (parseFloat(correctValue) - 1).toString(), correct: false },
+                  { content: (parseFloat(correctValue) * 2).toString(), correct: false }
                 ];
                 // Remove old options
                 delete widget.options.value;
@@ -413,7 +416,7 @@ function setupMain() {
                   console.log("Selected correct answer:", currentCorrectAnswer);
                   sendToast(`✅ Respuesta correcta extraída: ${currentCorrectAnswer}`, 2000);
                   break;
-                }
+                
               }
               if (currentCorrectAnswer) break;
             } else if (widget.type === 'numeric-input') {
@@ -675,4 +678,3 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
     })();
   })();
 }
-
