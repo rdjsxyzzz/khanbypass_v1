@@ -416,7 +416,7 @@ function setupMain() {
                   console.log("Selected correct answer:", currentCorrectAnswer);
                   sendToast(`✅ Respuesta correcta extraída: ${currentCorrectAnswer}`, 2000);
                   break;
-                
+                }
               }
               if (currentCorrectAnswer) break;
             } else if (widget.type === 'numeric-input') {
