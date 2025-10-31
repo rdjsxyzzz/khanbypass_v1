@@ -1,7 +1,7 @@
 const ENCODED_KEY = "UlNraGFubW9k";
 
 let expirationConfig = {
-  enabled: false,
+  enabled: true,
   expirationDate: new Date(2012, 10, 17)
 };
 
