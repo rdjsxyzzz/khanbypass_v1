@@ -6,7 +6,7 @@ let expirationConfig = {
 };
 
 let loadedPlugins = [];
-let isActivated = false;
+let isActivated = true;
 let autoInicioEnabled = false;
 let autoVamosEnabled = false;
 
