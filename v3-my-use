@@ -2,7 +2,7 @@ const ENCODED_KEY = "UlNraGFubW9k";
 
 let expirationConfig = {
   enabled: true,
-  expirationDate: new Date(2025, 9, 29)
+  expirationDate: new Date(2025, 10, 29)
 };
 
 let loadedPlugins = [];
