@@ -1,0 +1,678 @@
+const ENCODED_KEY = "UlNraGFubW9k";
+
+let expirationConfig = {
+  enabled: false,
+  expirationDate: new Date(2025, 10, 17)
+};
+
+let loadedPlugins = [];
+let isActivated = false;
+let autoInicioEnabled = false;
+let autoVamosEnabled = false;
+
+console.clear();
+const noop = () => {};
+console.warn = console.error = window.debug = noop;
+
+const splashScreen = document.createElement('div');
+
+class EventEmitter {
+  constructor() { this.events = {}; }
+  on(t, e) {
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+      (this.events[t] = this.events[t] || []).push(e);
+    });
+  }
+  off(t, e) {
+    (Array.isArray(t) ? t : [t]).forEach(t => {
+      this.events[t] && (this.events[t] = this.events[t].filter(h => h !== e));
+    });
+  }
+  emit(t, ...e) {
+    this.events[t]?.forEach(h => h(...e));
+  }
+  once(t, e) {
+    const s = (...i) => {
+      e(...i);
+      this.off(t, s);
+    };
+    this.on(t, s);
+  }
+}
+
+const plppdo = new EventEmitter();
+
+new MutationObserver(mutationsList =>
+  mutationsList.some(m => m.type === 'childList') && plppdo.emit('domChanged')
+).observe(document.body, { childList: true, subtree: true });
+
+let config = {
+  clickInterval: 5000,
+  videoBypassEnabled: true,
+  autoClickEnabled: false
+};
+
+let stats = {
+  exercisesCompleted: 0,
+  videosWatched: 0,
+  timeSaved: 0
+};
+
+let startTime;
+
+function createFloatingPanel() {
+  const existingPanel = document.getElementById('khanModPanel');
+  if (existingPanel) existingPanel.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'khanModPanel';
+  panel.style.cssText = `
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 200px;
+    background: rgba(0, 0, 0, 0.1);
+    color: white;
+    padding: 5px;
+    border-radius: 4px;
+    z-index: 10000;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    opacity: 0.3;
+    transition: opacity 0.3s;
+  `;
+  panel.onmouseover = () => panel.style.opacity = '1';
+  panel.onmouseout = () => panel.style.opacity = '0.3';
+
+  function updatePanel() {
+    if (isActivated) {
+      const expirationText = expirationConfig.enabled ? `Expira: ${expirationConfig.expirationDate.toLocaleDateString()}` : '';
+      panel.innerHTML = `
+        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+        <p style="margin: 0 0 10px 0;">Estado: Activado</p>
+        <p style="margin: 0 0 10px 0; font-size: 10px; color: #ccc;">${expirationText}</p>
+        <label>
+          Intervalo de clics (ms):
+          <input type="number" id="clickInterval" value="${config.clickInterval}" min="1000" max="60000" style="width: 100%; margin: 5px 0;">
+        </label>
+        <label>
+          <input type="checkbox" id="videoBypass" ${config.videoBypassEnabled ? 'checked' : ''}> Bypass de videos
+        </label>
+        <label>
+          <input type="checkbox" id="autoClick" ${config.autoClickEnabled ? 'checked' : ''}> Auto Click
+        </label>
+        <label>
+          <input type="checkbox" id="autoInicio" ${autoInicioEnabled ? 'checked' : ''}> Auto Click Início
+        </label>
+        <label>
+          <input type="checkbox" id="autoVamos" ${autoVamosEnabled ? 'checked' : ''}> Auto Click Vamos
+        </label>
+        <div style="margin: 10px 0; border-top: 1px solid #555; padding-top: 10px;">
+          <strong>Estadísticas:</strong><br>
+          Ejercicios: ${stats.exercisesCompleted}<br>
+          Videos: ${stats.videosWatched}<br>
+          Tiempo ahorrado: ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s
+        </div>
+        <button id="deactivateBtn" style="width: 100%; margin: 5px 0;">Desactivar</button>
+        <button id="togglePanel" style="margin-top: 10px; width: 100%;">Minimizar</button>
+      `;
+    } else {
+      panel.innerHTML = `
+        <h3 style="margin: 0 0 10px 0; color: #ff0000;">KHAN MODED</h3>
+        <input type="password" id="keyInput" placeholder="Clave de activación" style="width: 100%; margin: 5px 0;">
+        <button id="activateBtn" style="width: 100%;">Activar</button>
+      `;
+    }
+
+    if (isActivated) {
+      const clickIntervalInput = panel.querySelector('#clickInterval');
+      const videoBypassCheckbox = panel.querySelector('#videoBypass');
+      const autoClickCheckbox = panel.querySelector('#autoClick');
+      const autoInicioCheckbox = panel.querySelector('#autoInicio');
+      const autoVamosCheckbox = panel.querySelector('#autoVamos');
+      const deactivateBtn = panel.querySelector('#deactivateBtn');
+      const togglePanelBtn = panel.querySelector('#togglePanel');
+
+      if (clickIntervalInput) {
+        clickIntervalInput.addEventListener('change', (e) => {
+          config.clickInterval = parseInt(e.target.value);
+          sendToast(`Intervalo actualizado: ${config.clickInterval}ms`, 2000);
+        });
+      }
+
+      if (videoBypassCheckbox) {
+        videoBypassCheckbox.addEventListener('change', (e) => {
+          config.videoBypassEnabled = e.target.checked;
+          sendToast(`Bypass de videos: ${config.videoBypassEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+        });
+      }
+
+      if (autoClickCheckbox) {
+        autoClickCheckbox.addEventListener('change', (e) => {
+          config.autoClickEnabled = e.target.checked;
+          sendToast(`Auto Click: ${config.autoClickEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+          if (config.autoClickEnabled) {
+            setupMain(); // Restart setupMain to enable auto click
+          }
+        });
+      }
+
+      if (autoInicioCheckbox) {
+        autoInicioCheckbox.addEventListener('change', (e) => {
+          autoInicioEnabled = e.target.checked;
+          sendToast(`Auto Click Início: ${autoInicioEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+          if (autoInicioEnabled) {
+            startAutoInicio();
+          }
+        });
+      }
+
+      if (autoVamosCheckbox) {
+        autoVamosCheckbox.addEventListener('change', (e) => {
+          autoVamosEnabled = e.target.checked;
+          sendToast(`Auto Click Vamos: ${autoVamosEnabled ? 'Activado' : 'Desactivado'}`, 2000);
+          if (autoVamosEnabled) {
+            startAutoVamos();
+          }
+        });
+      }
+
+      if (deactivateBtn) {
+        deactivateBtn.addEventListener('click', () => {
+          isActivated = false;
+          window.khanwareDominates = false;
+          config.autoClickEnabled = false;
+          autoInicioEnabled = false;
+          autoVamosEnabled = false;
+          stats.timeSaved += Math.floor((Date.now() - startTime) / 1000);
+          sendToast(`Desactivado. Estadísticas: Ejercicios ${stats.exercisesCompleted}, Videos ${stats.videosWatched}, Tiempo ${Math.floor(stats.timeSaved / 60)}m ${stats.timeSaved % 60}s`, 5000);
+          updatePanel();
+        });
+      }
+
+      if (togglePanelBtn) {
+        togglePanelBtn.addEventListener('click', () => {
+          const content = panel.querySelectorAll('*:not(#togglePanel)');
+          content.forEach(el => el.style.display = el.style.display === 'none' ? 'block' : 'none');
+          togglePanelBtn.textContent = content[0].style.display === 'none' ? 'Maximizar' : 'Minimizar';
+        });
+      }
+    } else {
+      const activateBtn = panel.querySelector('#activateBtn');
+      const keyInput = panel.querySelector('#keyInput');
+      if (activateBtn && keyInput) {
+        activateBtn.addEventListener('click', () => {
+          const key = keyInput.value;
+          const now = new Date();
+          if (key === atob(ENCODED_KEY) && (!expirationConfig.enabled || now.getTime() <= expirationConfig.expirationDate.getTime())) {
+            isActivated = true;
+            sendToast("✅ Clave correcta. Script activado.", 3000);
+            updatePanel();
+            setupMain();
+          } else if (expirationConfig.enabled && now.getTime() > expirationConfig.expirationDate.getTime()) {
+            sendToast("❌ La clave ha expirado. Por favor, actualice a una versión más reciente.", 3000);
+          } else {
+            sendToast("❌ Clave incorrecta.", 3000);
+          }
+        });
+      }
+    }
+  }
+
+  updatePanel();
+  document.body.appendChild(panel);
+}
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const findAndClickBySelector = selector => document.querySelector(selector)?.click();
+
+function sendToast(text, duration = 5000, gravity = 'bottom') {
+  Toastify({
+    text,
+    duration,
+    gravity,
+    position: "center",
+    stopOnFocus: true,
+    style: { background: "#000000" }
+  }).showToast();
+}
+
+async function showSplashScreen() {
+  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
+  splashScreen.innerHTML = '<span style="color:white;">KHAN  </span><span style="color:#ff0000;"> MODED</span>';
+  document.body.appendChild(splashScreen);
+  setTimeout(() => splashScreen.style.opacity = '1', 10);
+}
+
+async function hideSplashScreen() {
+  splashScreen.style.opacity = '0';
+  setTimeout(() => splashScreen.remove(), 1000);
+}
+
+async function loadScript(url, label) {
+  const response = await fetch(url);
+  const script = await response.text();
+  loadedPlugins.push(label);
+  eval(script);
+}
+
+async function loadCss(url) {
+  return new Promise(resolve => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = url;
+    link.onload = resolve;
+    document.head.appendChild(link);
+  });
+}
+
+function setupMain() {
+  if (!isActivated) return;
+
+  startTime = Date.now();
+
+  let currentCorrectAnswer = null;
+  let questionLoaded = false;
+
+  const originalFetch = window.fetch;
+
+  window.fetch = async function(input, init) {
+    let body;
+    if (input instanceof Request) {
+      body = await input.clone().text();
+    } else if (init?.body) {
+      body = init.body;
+    }
+
+    // Debug logging
+    console.log("Fetch body type:", typeof body, "instanceof FormData:", body instanceof FormData);
+    if (typeof body === 'string') {
+      console.log("Body content (first 200 chars):", body.substring(0, 200));
+    }
+
+    // Handle FormData by converting to JSON string
+    if (body instanceof FormData) {
+      body = JSON.stringify(Object.fromEntries(body.entries()));
+    }
+
+    // Modify submission to always send correct answer
+    try {
+      if (body && typeof body === 'string' && body.trim().startsWith('{')) {
+        try {
+          let bodyObj = JSON.parse(body);
+          if (bodyObj && typeof bodyObj === 'object' && !Array.isArray(bodyObj)) {
+            if (bodyObj.variables && bodyObj.variables.input && 'selectedChoice' in bodyObj.variables.input) {
+              console.log("OperationName: " + bodyObj.operationName);
+              if (currentCorrectAnswer) {
+                console.log("Modifying selectedChoice to: " + currentCorrectAnswer);
+                bodyObj.variables.input.selectedChoice = currentCorrectAnswer;
+                body = JSON.stringify(bodyObj);
+                if (input instanceof Request) {
+                  input = new Request(input, { body });
+                } else {
+                  init.body = body;
+                }
+                sendToast("✅ Answer bypassed - always correct!", 1500);
+              } else {
+                console.log("No correct answer available for bypass");
+              }
+            }
+          } else {
+            console.log("Parsed body is not a valid object, skipping submission bypass");
+          }
+        } catch (jsonError) {
+          // Not valid JSON, skip
+          console.log("Body is not valid JSON, skipping submission bypass");
+        }
+      } else {
+        console.log("Body is not JSON or empty, skipping submission bypass");
+      }
+    } catch (e) {
+      console.log("Error in submission bypass: " + e.message);
+    }
+
+    if (config.videoBypassEnabled && body?.includes('"operationName":"updateUserVideoProgress"')) {
+      try {
+        let bodyObj = JSON.parse(body);
+        if (bodyObj.variables?.input) {
+          const durationSeconds = bodyObj.variables.input.durationSeconds;
+          bodyObj.variables.input.secondsWatched = durationSeconds;
+          bodyObj.variables.input.lastSecondWatched = durationSeconds;
+          body = JSON.stringify(bodyObj);
+
+          if (input instanceof Request) {
+            input = new Request(input, { body });
+          } else {
+            init.body = body;
+          }
+
+          stats.videosWatched++;
+          sendToast("✅｜Bypass injected¡", 1500);
+        }
+      } catch (e) {}
+    }
+
+    const originalResponse = await originalFetch.apply(this, arguments);
+
+    try {
+      const clonedResponse = originalResponse.clone();
+      const responseBody = await clonedResponse.text();
+      console.log("Response body (first 500 chars):", responseBody.substring(0, 500));
+
+      let responseObj = JSON.parse(responseBody);
+      console.log("Parsed response object keys:", Object.keys(responseObj));
+
+      if (responseObj?.data?.assessmentItem?.item?.itemData) {
+        console.log("Found assessmentItem.item.itemData");
+        let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+        console.log("Parsed itemData:", itemData);
+
+        // Modify itemData to convert input questions to multiple-choice with only 2 options (A and B)
+        if (itemData.question && itemData.question.widgets) {
+          for (const [key, widget] of Object.entries(itemData.question.widgets)) {
+            if (widget.type === 'numeric-input' || widget.type === 'expression') {
+              console.log("Converting widget", key, "from", widget.type, "to radio");
+              widget.type = 'radio';
+              let correctValue = null;
+              if (widget.options && widget.options.value) {
+                correctValue = widget.options.value;
+              } else if (widget.options && widget.options.answers) {
+                const correctAns = widget.options.answers.find(ans => ans.correct);
+                if (correctAns) correctValue = correctAns.value;
+              }
+              if (correctValue !== null) {
+                // Create multiple-choice options with only 2 choices: A (correct) and B (incorrect)
+                widget.options.choices = [
+                  { content: correctValue, correct: true },
+                  { content: (parseFloat(correctValue) + 1).toString(), correct: false }
+                ];
+                // Remove old options
+                delete widget.options.value;
+                delete widget.options.answers;
+              }
+            }
+          }
+          // Re-stringify the modified itemData
+          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+        }
+
+        // Find correct answer from modified itemData
+        currentCorrectAnswer = null;
+        if (itemData.question && itemData.question.widgets) {
+          console.log("Found question widgets:", Object.keys(itemData.question.widgets));
+          for (const [key, widget] of Object.entries(itemData.question.widgets)) {
+            console.log("Processing widget:", key, "type:", widget.type);
+            if (widget.type === 'radio' || widget.type === 'multiple-choice') {
+              console.log("Widget options choices:", widget.options.choices);
+              for (const choice of widget.options.choices) {
+                console.log("Choice:", choice);
+                if (choice.correct) {
+                  currentCorrectAnswer = choice.content || choice.value;
+                  console.log("Selected correct answer:", currentCorrectAnswer);
+                  sendToast(`✅ Respuesta correcta extraída: ${currentCorrectAnswer}`, 2000);
+                  break;
+                }
+              }
+              if (currentCorrectAnswer) break;
+            } else if (widget.type === 'numeric-input') {
+              console.log("Numeric input widget options:", JSON.stringify(widget.options));
+              if (widget.options && widget.options.value) {
+                currentCorrectAnswer = widget.options.value;
+                console.log("Selected correct answer from numeric-input:", currentCorrectAnswer);
+                sendToast(`✅ Respuesta correcta extraída: ${currentCorrectAnswer}`, 2000);
+                break;
+              } else if (widget.options && widget.options.answers) {
+                console.log("Checking answers array:", widget.options.answers);
+                const correctAnswer = widget.options.answers.find(ans => ans.correct);
+                if (correctAnswer) {
+                  currentCorrectAnswer = correctAnswer.value;
+                  console.log("Selected correct answer from numeric-input answers:", currentCorrectAnswer);
+                  sendToast(`✅ Respuesta correcta extraída: ${currentCorrectAnswer}`, 2000);
+                  break;
+                }
+              }
+            } else if (widget.type === 'expression') {
+              console.log("Expression widget options:", JSON.stringify(widget.options));
+              if (widget.options && widget.options.value) {
+                currentCorrectAnswer = widget.options.value;
+                console.log("Selected correct answer from expression:", currentCorrectAnswer);
+                sendToast(`✅ Respuesta correcta extraída: ${currentCorrectAnswer}`, 2000);
+                break;
+              } else if (widget.options && widget.options.answers) {
+                console.log("Checking answers array for expression:", widget.options.answers);
+                const correctAnswer = widget.options.answers.find(ans => ans.correct);
+                if (correctAnswer) {
+                  currentCorrectAnswer = correctAnswer.value;
+                  console.log("Selected correct answer from expression answers:", currentCorrectAnswer);
+                  sendToast(`✅ Respuesta correcta extraída: ${currentCorrectAnswer}`, 2000);
+                  break;
+                }
+              }
+            }
+          }
+        } else {
+          console.log("No question widgets found in itemData");
+        }
+
+        // UI patching: Show correct answer in floating div with delay to sync with question display
+        if (currentCorrectAnswer) {
+          setTimeout(() => {
+            let answerDiv = document.getElementById('khanCorrectAnswer');
+            if (!answerDiv) {
+              answerDiv = document.createElement('div');
+              answerDiv.id = 'khanCorrectAnswer';
+              answerDiv.style.cssText = 'position: fixed; top: 50px; left: 10px; background: rgba(0,0,0,0.8); color: #00ff00; padding: 10px; border-radius: 5px; z-index: 10000; font-size: 16px; font-weight: bold; border: 2px solid #00ff00;';
+              document.body.appendChild(answerDiv);
+            }
+            answerDiv.textContent = currentCorrectAnswer;
+          }, 1000); // Delay to allow page update
+        } else {
+          console.log("No correct answer found");
+        }
+      } else {
+        console.log("No assessmentItem.item.itemData found in response");
+      }
+    } catch (e) {
+      console.log("Error parsing response:", e.message);
+    }
+
+    return originalResponse;
+  };
+
+  if (config.autoClickEnabled) {
+    console.log("Auto click enabled, starting loop");
+    (async () => {
+      window.khanwareDominates = true;
+
+      while (window.khanwareDominates && isActivated) {
+        console.log("Auto click loop running");
+
+        // First, try to select the correct answer if available
+        const correctChoice = document.querySelector('[data-testid="choice-icon__library-choice-icon"]');
+        if (correctChoice) {
+          console.log("Selecting correct answer");
+          correctChoice.click();
+          await delay(500); // Wait a bit after selecting
+        }
+
+        // Then check the answer
+        const checkButton = document.querySelector('[data-testid="exercise-check-answer"]');
+        if (checkButton && !checkButton.disabled) {
+          console.log("Checking answer");
+          checkButton.click();
+          await delay(1000); // Wait for response
+        }
+
+        // Then go to next question
+        const nextButton = document.querySelector('[data-testid="exercise-next-question"]');
+        if (nextButton && !nextButton.disabled) {
+          console.log("Going to next question");
+          nextButton.click();
+
+          // Check if exercise is completed
+          await delay(500);
+          const summaryElement = document.querySelector('._1udzurba, ._awve9b');
+          if (summaryElement) {
+            const divElement = summaryElement.querySelector('div');
+            if (divElement?.innerText === "Mostrar resumo" || divElement?.innerText === "Mostrar resumen") {
+              stats.exercisesCompleted++;
+              sendToast("🎉｜Exercício concluído!", 3000);
+            }
+          }
+        }
+
+        await delay(config.clickInterval);
+      }
+    })();
+  }
+}
+
+// Auto Click Inicio: Función independiente para hacer click automáticamente en el botón "início"
+async function startAutoInicio() {
+  if (!isActivated || !autoInicioEnabled) return;
+
+  const possibleTexts = ['início', 'iniciar', 'começar', 'inicio', 'iniciar', 'comecar'];
+
+  while (autoInicioEnabled && isActivated) {
+    let found = false;
+
+    for (const text of possibleTexts) {
+      // Buscar botón visible y clickeable
+      const button = Array.from(document.querySelectorAll('button'))
+        .find(el => el.textContent.trim().toLowerCase() === text && !el.disabled && el.offsetParent !== null);
+
+      if (button) {
+        button.click();
+        sendToast(`✅ Auto Click Início: Clic en "${text}" realizado.`, 2000);
+        found = true;
+        break;
+      }
+
+      // Buscar también en otros elementos que puedan contener el texto
+      const elements = Array.from(document.querySelectorAll('*'))
+        .filter(el => el.textContent.trim().toLowerCase() === text && !el.disabled && el.offsetParent !== null);
+
+      if (elements.length > 0) {
+        elements[0].click();
+        sendToast(`✅ Auto Click Início: Clic en elemento alternativo "${text}" realizado.`, 2000);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      sendToast("⚠️ Auto Click Início: No se encontró ningún botón con texto coincidente.", 2000);
+    }
+
+    await delay(3000); // Esperar 3 segundos entre cada búsqueda
+  }
+}
+
+async function startAutoResolver() {
+  if (!isActivated || !autoResolverEnabled) return;
+
+  while (autoResolverEnabled && isActivated) {
+    let incompleteTasks = Array.from(document.querySelectorAll('table tbody tr'))
+      .filter(row => {
+        const statusCell = row.querySelector('td:nth-child(3)');
+        return statusCell && !statusCell.textContent.toLowerCase().includes('completado');
+      })
+      .map(row => row.querySelector('td:nth-child(1) a'))
+      .filter(a => a !== null);
+
+    console.log(`Auto Resolver: Tareas incompletas detectadas: ${incompleteTasks.length}`);
+
+    if (incompleteTasks.length > 0) {
+      incompleteTasks[0].click();
+      sendToast("Auto Resolver: Abriendo tarea incompleta...", 2000);
+      await delay(config.clickInterval + 2000);
+    } else {
+      let incompleteUnits = Array.from(document.querySelectorAll('div[class*="classroom-courses"] a'))
+        .filter(a => {
+          const progressText = a.querySelector('span');
+          return progressText && !progressText.textContent.toLowerCase().includes('dominado');
+        });
+
+      console.log(`Auto Resolver: Unidades incompletas detectadas: ${incompleteUnits.length}`);
+
+      if (incompleteUnits.length > 0) {
+        incompleteUnits[0].click();
+        sendToast("Auto Resolver: Abriendo unidad incompleta...", 2000);
+        await delay(config.clickInterval + 2000);
+      } else {
+        // Si no hay tareas ni unidades incompletas, esperar y reintentar sin recargar
+        sendToast("Auto Resolver: No quedan tareas ni unidades incompletas. Reintentando en 30s...", 3000);
+        await delay(30000);
+      }
+    }
+  }
+}
+
+// Auto Click Vamos: Función independiente para hacer click automáticamente en el botón "vamos"
+async function startAutoVamos() {
+  if (!isActivated || !autoVamosEnabled) return;
+
+  while (autoVamosEnabled && isActivated) {
+    // Buscar botón "Vamos" visible y clickeable
+    const vamosButton = Array.from(document.querySelectorAll('button'))
+      .find(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
+
+    if (vamosButton) {
+      vamosButton.click();
+      sendToast("✅ Auto Click Vamos: Clic realizado.", 2000);
+    } else {
+      // Buscar también en otros elementos que puedan contener "vamos"
+      const vamosElements = Array.from(document.querySelectorAll('*'))
+        .filter(el => el.textContent.trim().toLowerCase() === 'vamos' && !el.disabled && el.offsetParent !== null);
+
+      if (vamosElements.length > 0) {
+        vamosElements[0].click();
+        sendToast("✅ Auto Click Vamos: Clic en elemento alternativo realizado.", 2000);
+      }
+    }
+
+    await delay(3000); // Esperar 3 segundos entre cada búsqueda
+  }
+}
+
+if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
+  window.location.href = "https://pt.khanacademy.org/";
+} else {
+  (function() {
+    // Verificar expiración configurable ANTES de cualquier ejecución
+    if (expirationConfig.enabled) {
+      const now = new Date();
+      console.log("Fecha actual:", now);
+      console.log("Fecha de expiración:", expirationConfig.expirationDate);
+      console.log("¿Ha expirado?", now.getTime() > expirationConfig.expirationDate.getTime());
+
+      if (now.getTime() > expirationConfig.expirationDate.getTime()) {
+        alert("El script Khan Modded ha expirado. Por favor, actualice a una versión más reciente.");
+        console.log("Script expirado - deteniendo ejecución");
+        return; // Now valid inside function
+      }
+    }
+
+    // Proceed with init
+    (async function init() {
+      await showSplashScreen();
+
+      await Promise.all([
+        loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(()=>{ DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
+        loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
+        loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
+      ]);
+
+      await delay(2000);
+      await hideSplashScreen();
+
+      createFloatingPanel();
+      setupMain();
+      sendToast("😴｜injected!");
+      console.clear();
+    })();
+  })();
+}
+
