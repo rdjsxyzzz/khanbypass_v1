@@ -54,10 +54,6 @@ banner.style.zIndex = "999999";
 
 document.body.appendChild(banner);
 
-})();
-
-(function(){
-
 console.log("🔎 Balance integrity test");
 
 const balanceEl = document.querySelector("*:contains('$'), .balance, [data-balance]");
