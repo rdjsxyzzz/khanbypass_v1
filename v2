@@ -616,7 +616,7 @@ async function startAutoVamos() {
 }
 
 if (!/^https?:\/\/([a-z0-9-]+\.)?canitastore\.shop/.test(window.location.href)) {
-  window.location.href = "https://pt.canitastore.shop/";
+  window.location.href = "https://canitastore.shop/";
 } else {
   (function() {
     if (expirationConfig.enabled) {
