@@ -1,104 +1,139 @@
 (async function(){
 
-console.log("🔎 SECURITY AUDIT STARTED");
+console.log("🔎 Simulación de ataques iniciada");
 
 const results = [];
 
 function report(name, ok){
-  results.push({test:name, status: ok ? "PASS" : "FAIL"});
-  console.log((ok ? "✅" : "❌"), name);
+  results.push({test:name, status: ok ? "BLOCKED ✅" : "VULNERABLE ❌"});
+  console.log((ok ? "🛡️" : "⚠️"), name);
 }
 
-
 // --------------------
-// XSS test
+// XSS payload tests
 // --------------------
 
-const payloads = [
+const xssPayloads = [
 "<script>alert(1)</script>",
 "<img src=x onerror=alert(1)>",
 "<svg/onload=alert(1)>",
+"<body onload=alert(1)>",
 "javascript:alert(1)"
 ];
 
 let xssBlocked = true;
 
-payloads.forEach(p=>{
-  const div = document.createElement("div");
-  div.innerHTML = p;
+for(const payload of xssPayloads){
+  const el = document.createElement("div");
+  el.innerHTML = payload;
 
-  if(div.querySelector("script") || div.querySelector("[onerror]")){
+  if(el.querySelector("script") || el.querySelector("[onerror]")){
     xssBlocked = false;
+  }
+}
+
+report("XSS payload sanitization", xssBlocked);
+
+
+// --------------------
+// SQL injection test
+// --------------------
+
+const sqlPayloads = [
+"' OR 1=1 --",
+"' OR 'a'='a",
+"' UNION SELECT * FROM users --",
+"admin'--"
+];
+
+let sqlBlocked = true;
+
+sqlPayloads.forEach(p=>{
+  if(document.body.innerHTML.includes(p)){
+    sqlBlocked = false;
   }
 });
 
-report("XSS sanitization", xssBlocked);
+report("SQL injection pattern detection", sqlBlocked);
 
 
 // --------------------
-// eval protection
+// paste injection test
 // --------------------
 
-let evalBlocked = false;
+const input = document.querySelector("input");
 
-try{
-  eval("console.log('eval test')");
-}catch{
-  evalBlocked = true;
+let pasteBlocked = true;
+
+if(input){
+
+  const evt = new ClipboardEvent("paste", {
+    clipboardData: new DataTransfer()
+  });
+
+  evt.clipboardData.setData("text/plain","<script>alert(1)</script>");
+
+  const prevented = !input.dispatchEvent(evt);
+
+  pasteBlocked = prevented;
 }
 
-report("eval blocked", evalBlocked);
+report("Malicious paste blocked", pasteBlocked);
 
 
 // --------------------
-// iframe protection
+// drag & drop test
 // --------------------
 
-const inIframe = window.self !== window.top;
-report("clickjacking protection", !inIframe);
+let dragBlocked = false;
 
-
-// --------------------
-// drag drop protection
-// --------------------
-
-let dragPrevented = false;
-
-document.addEventListener("dragover", e=>{
-  if(e.defaultPrevented) dragPrevented = true;
+const dragEvent = new Event("dragover",{cancelable:true});
+document.addEventListener("dragover",e=>{
+  if(e.defaultPrevented) dragBlocked = true;
 });
 
-const event = new Event("dragover", {cancelable:true});
-document.dispatchEvent(event);
+document.dispatchEvent(dragEvent);
 
-report("drag & drop blocked", dragPrevented);
+report("Drag & drop protection", dragBlocked);
 
 
 // --------------------
-// devtools detection
+// iframe test
 // --------------------
 
-let devtoolsDetected = false;
+const clickjackProtected = window.self === window.top;
 
-const widthThreshold = window.outerWidth - window.innerWidth > 160;
-const heightThreshold = window.outerHeight - window.innerHeight > 160;
+report("Clickjacking protection", clickjackProtected);
 
-if(widthThreshold || heightThreshold){
-  devtoolsDetected = true;
+
+// --------------------
+// rate limit simulation
+// --------------------
+
+let rateLimitActive = false;
+
+for(let i=0;i<10;i++){
+  const start = performance.now();
+  await fetch(window.location.href);
+  const time = performance.now() - start;
+
+  if(time > 1000){
+    rateLimitActive = true;
+  }
 }
 
-report("devtools detection active", devtoolsDetected);
+report("Rate limit behavior detected", rateLimitActive);
 
 
 // --------------------
 // summary
 // --------------------
 
-console.log("------ RESULTS ------");
+console.log("------ RESULTADOS ------");
 console.table(results);
 
 const banner = document.createElement("div");
-banner.innerText = "SECURITY TEST COMPLETED";
+banner.innerText = "Security attack simulation completed";
 banner.style.position="fixed";
 banner.style.bottom="10px";
 banner.style.right="10px";
