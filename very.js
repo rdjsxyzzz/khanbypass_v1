@@ -55,3 +55,30 @@ banner.style.zIndex = "999999";
 document.body.appendChild(banner);
 
 })();
+
+(function(){
+
+console.log("🔎 Balance integrity test");
+
+const balanceEl = document.querySelector("*:contains('$'), .balance, [data-balance]");
+
+if(!balanceEl){
+  console.log("No se detectó elemento de saldo automáticamente.");
+  return;
+}
+
+// guardar valor original
+const original = balanceEl.textContent;
+
+// modificar visualmente
+balanceEl.textContent = "$9999.99 (TEST)";
+
+console.log("Saldo visual modificado temporalmente");
+
+// restaurar después de 3 segundos
+setTimeout(()=>{
+  balanceEl.textContent = original;
+  console.log("Saldo restaurado");
+},3000);
+
+})();
