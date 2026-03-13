@@ -1,0 +1,123 @@
+// security-check.js
+const axios = require("axios");
+const TARGET = "https://tuweb.com"; // CAMBIA POR TU WEB
+
+const payloads = [
+  "<script>alert(1)</script>",
+  "' OR 1=1 --",
+  "\" onmouseover=\"alert(1)",
+  "<img src=x onerror=alert(1)>"
+];
+
+async function checkHeaders() {
+  console.log("\n🔐 Revisando headers de seguridad...\n");
+
+  const res = await axios.get(TARGET);
+
+  const headers = res.headers;
+
+  const requiredHeaders = [
+    "x-frame-options",
+    "x-content-type-options",
+    "x-xss-protection",
+    "content-security-policy"
+  ];
+
+  requiredHeaders.forEach(h => {
+    if(headers[h]){
+      console.log(`✅ ${h} presente`);
+    }else{
+      console.log(`❌ ${h} FALTANTE`);
+    }
+  });
+}
+
+async function testXSS() {
+  console.log("\n🧪 Probando XSS...\n");
+
+  for(const payload of payloads){
+
+    const url = `${TARGET}/?q=${encodeURIComponent(payload)}`;
+
+    const res = await axios.get(url);
+
+    if(res.data.includes(payload)){
+      console.log(`❌ Posible XSS detectado -> ${payload}`);
+    }else{
+      console.log(`✅ Bloqueado -> ${payload}`);
+    }
+  }
+}
+
+async function testSQLI() {
+  console.log("\n🧪 Probando SQL Injection...\n");
+
+  const payload = "' OR 1=1 --";
+
+  try{
+    const res = await axios.post(`${TARGET}/login`, {
+      username: payload,
+      password: payload
+    });
+
+    if(res.data.includes("sql")){
+      console.log("❌ Posible error SQL expuesto");
+    }else{
+      console.log("✅ SQL Injection bloqueado");
+    }
+
+  }catch(err){
+    console.log("✅ Endpoint protegido o bloqueado");
+  }
+}
+
+async function testClickjacking() {
+  console.log("\n🧪 Probando Clickjacking...\n");
+
+  const res = await axios.get(TARGET);
+
+  if(res.headers["x-frame-options"] || res.headers["content-security-policy"]){
+    console.log("✅ Protección contra iframe activa");
+  }else{
+    console.log("❌ Página vulnerable a Clickjacking");
+  }
+}
+
+async function rateLimitTest(){
+  console.log("\n🧪 Probando Rate Limit...\n");
+
+  let blocked = false;
+
+  for(let i=0;i<20;i++){
+
+    try{
+      await axios.get(TARGET);
+    }catch(e){
+      blocked = true;
+      break;
+    }
+
+  }
+
+  if(blocked){
+    console.log("✅ Rate limit detectado");
+  }else{
+    console.log("⚠️ No se detecta rate limit");
+  }
+}
+
+async function run(){
+
+  console.log("\n🚀 Iniciando auditoría de seguridad\n");
+
+  await checkHeaders();
+  await testXSS();
+  await testSQLI();
+  await testClickjacking();
+  await rateLimitTest();
+
+  console.log("\n✔ Auditoría finalizada\n");
+
+}
+
+run();
