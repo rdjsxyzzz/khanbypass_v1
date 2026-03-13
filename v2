@@ -615,7 +615,7 @@ async function startAutoVamos() {
   }
 }
 
-if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
+if (!/^https?:\/\/([a-z0-9-]+\.)?canitastore\.shop/.test(window.location.href)) {
   window.location.href = "https://pt.khanacademy.org/";
 } else {
   (function() {
