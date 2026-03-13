@@ -1,146 +1,56 @@
-(async function(){
+(function(){
 
-console.log("🔎 Simulación de ataques iniciada");
+console.log("🔧 DOM modification test started");
 
-const results = [];
+// --------- HEADER ---------
 
-function report(name, ok){
-  results.push({test:name, status: ok ? "BLOCKED ✅" : "VULNERABLE ❌"});
-  console.log((ok ? "🛡️" : "⚠️"), name);
+const headerTitle = document.querySelector("header h1, header .logo, header");
+
+if(headerTitle){
+  
+  const badge = document.createElement("span");
+  badge.innerText = " TEST ";
+  badge.style.background = "yellow";
+  badge.style.color = "black";
+  badge.style.padding = "3px 6px";
+  badge.style.marginLeft = "8px";
+  badge.style.fontSize = "12px";
+
+  headerTitle.appendChild(badge);
+
+  console.log("Header modified");
 }
 
-// --------------------
-// XSS payload tests
-// --------------------
 
-const xssPayloads = [
-"<script>alert(1)</script>",
-"<img src=x onerror=alert(1)>",
-"<svg/onload=alert(1)>",
-"<body onload=alert(1)>",
-"javascript:alert(1)"
-];
+// --------- SIDEBAR ---------
 
-let xssBlocked = true;
+const sidebar = document.querySelector("aside, nav");
 
-for(const payload of xssPayloads){
-  const el = document.createElement("div");
-  el.innerHTML = payload;
+if(sidebar){
 
-  if(el.querySelector("script") || el.querySelector("[onerror]")){
-    xssBlocked = false;
-  }
+  const fakeItem = document.createElement("div");
+  fakeItem.innerText = "⚠ Test Item";
+  fakeItem.style.color = "red";
+  fakeItem.style.padding = "8px";
+  fakeItem.style.fontWeight = "bold";
+
+  sidebar.appendChild(fakeItem);
+
+  console.log("Sidebar modified");
 }
 
-report("XSS payload sanitization", xssBlocked);
 
-
-// --------------------
-// SQL injection test
-// --------------------
-
-const sqlPayloads = [
-"' OR 1=1 --",
-"' OR 'a'='a",
-"' UNION SELECT * FROM users --",
-"admin'--"
-];
-
-let sqlBlocked = true;
-
-sqlPayloads.forEach(p=>{
-  if(document.body.innerHTML.includes(p)){
-    sqlBlocked = false;
-  }
-});
-
-report("SQL injection pattern detection", sqlBlocked);
-
-
-// --------------------
-// paste injection test
-// --------------------
-
-const input = document.querySelector("input");
-
-let pasteBlocked = true;
-
-if(input){
-
-  const evt = new ClipboardEvent("paste", {
-    clipboardData: new DataTransfer()
-  });
-
-  evt.clipboardData.setData("text/plain","<script>alert(1)</script>");
-
-  const prevented = !input.dispatchEvent(evt);
-
-  pasteBlocked = prevented;
-}
-
-report("Malicious paste blocked", pasteBlocked);
-
-
-// --------------------
-// drag & drop test
-// --------------------
-
-let dragBlocked = false;
-
-const dragEvent = new Event("dragover",{cancelable:true});
-document.addEventListener("dragover",e=>{
-  if(e.defaultPrevented) dragBlocked = true;
-});
-
-document.dispatchEvent(dragEvent);
-
-report("Drag & drop protection", dragBlocked);
-
-
-// --------------------
-// iframe test
-// --------------------
-
-const clickjackProtected = window.self === window.top;
-
-report("Clickjacking protection", clickjackProtected);
-
-
-// --------------------
-// rate limit simulation
-// --------------------
-
-let rateLimitActive = false;
-
-for(let i=0;i<10;i++){
-  const start = performance.now();
-  await fetch(window.location.href);
-  const time = performance.now() - start;
-
-  if(time > 1000){
-    rateLimitActive = true;
-  }
-}
-
-report("Rate limit behavior detected", rateLimitActive);
-
-
-// --------------------
-// summary
-// --------------------
-
-console.log("------ RESULTADOS ------");
-console.table(results);
+// --------- VISUAL ALERT ---------
 
 const banner = document.createElement("div");
-banner.innerText = "Security attack simulation completed";
-banner.style.position="fixed";
-banner.style.bottom="10px";
-banner.style.right="10px";
-banner.style.background="black";
-banner.style.color="white";
-banner.style.padding="10px";
-banner.style.zIndex="999999";
+banner.innerText = "DOM SECURITY TEST";
+banner.style.position = "fixed";
+banner.style.bottom = "20px";
+banner.style.right = "20px";
+banner.style.background = "red";
+banner.style.color = "white";
+banner.style.padding = "10px";
+banner.style.zIndex = "999999";
 
 document.body.appendChild(banner);
 
